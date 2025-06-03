@@ -1,0 +1,28 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/avr-gcc",
+      "-Os",
+      "-g",
+      "-std=gnu99",
+      "-Wall",
+      "-funsigned-char",
+      "-funsigned-bitfields",
+      "-fpack-struct",
+      "-fshort-enums",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-DF_CPU=16000000UL",
+      "-DBAUD=9600UL",
+      "-I.",
+      "-mmcu=atmega328p",
+      "-c",
+      "-o",
+      "build/main.o",
+      "src/main.c"
+    ],
+    "directory": "/home/hayata/smart_home",
+    "file": "/home/hayata/smart_home/src/main.c",
+    "output": "/home/hayata/smart_home/build/main.o"
+  }
+]
