@@ -1,3 +1,9 @@
 {
-    "files.associations": {}
+    "files.associations": {
+        "io.h": "c",
+        "iom328p.h": "c",
+        "inttypes.h": "c",
+        "lcd.h": "c",
+        "stdio.h": "c"
+    }
 }
