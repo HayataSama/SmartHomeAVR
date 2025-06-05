@@ -13,8 +13,8 @@ LCD lcdInit(uint8_t rs, uint8_t enable, uint8_t d4, uint8_t d5, uint8_t d6,
       .numlines = rows,
   };
 
-  //   setRowOffsets(0x00, 0x40, 0x00 + cols, 0x40 + cols, lcd);
-  setRowOffsets(0x00, 0x40, 0x00, 0x40, &lcd);
+  // set the starting DDRAM address offset for each row of the LCD
+  setRowOffsets(&lcd, 0x00, 0x40, 0x00, 0x40);
 
   // set register select and enable pin as output
   PORTB = 0x00;
@@ -28,41 +28,41 @@ LCD lcdInit(uint8_t rs, uint8_t enable, uint8_t d4, uint8_t d5, uint8_t d6,
 
   // set LCD to 4-bit mode
   PORTB &= ~((1 << rs) | (1 << enable));
-  write4bits(0x03, lcd);
+  write4bits(lcd, 0x03);
   _delay_ms(5);
-  write4bits(0x03, lcd);
+  write4bits(lcd, 0x03);
   _delay_ms(5);
-  write4bits(0x03, lcd);
+  write4bits(lcd, 0x03);
   _delay_us(150);
-  write4bits(0x02, lcd);
+  write4bits(lcd, 0x02);
 
   // set number of lines, font size, etc
-  sendCommand(LCD_FUNCTIONSET | lcd.displayfunction, lcd);
+  sendCommand(lcd, LCD_FUNCTIONSET | lcd.displayfunction);
 
-  // ture on display with no cursor and blinking then clear it
+  // true on display with no cursor and blinking then clear it
   lcd.displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF;
-  lcdDisplayOn(lcd);
+  lcdDisplayOn(&lcd);
   lcdClear(lcd);
 
   // set entry mode
   lcd.displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
-  sendCommand(LCD_ENTRYMODESET | lcd.displaymode, lcd);
+  sendCommand(lcd, LCD_ENTRYMODESET | lcd.displaymode);
 
   _delay_ms(50);
   return lcd;
 }
 
 void lcdHome(LCD lcd) {
-  sendCommand(LCD_RETURNHOME, lcd);
+  sendCommand(lcd, LCD_RETURNHOME);
   _delay_ms(2);
 }
 
 void lcdClear(LCD lcd) {
-  sendCommand(LCD_CLEARDISPLAY, lcd);
+  sendCommand(lcd, LCD_CLEARDISPLAY);
   _delay_ms(2);
 }
 
-void lcdSetCursor(uint8_t row, uint8_t col, LCD lcd) {
+void lcdSetCursor(LCD lcd, uint8_t row, uint8_t col) {
   const size_t max_rows = sizeof(lcd.row_offsets) / sizeof(lcd.row_offsets[0]);
   if (row >= max_rows) {
     row = max_rows - 1;
@@ -70,32 +70,44 @@ void lcdSetCursor(uint8_t row, uint8_t col, LCD lcd) {
   if (row >= lcd.numlines) {
     row = lcd.numlines - 1;
   }
-  sendCommand(LCD_SETDDRAMADDR | (col + lcd.row_offsets[row]), lcd);
+  sendCommand(lcd, LCD_SETDDRAMADDR | (col + lcd.row_offsets[row]));
 }
 
-void lcdPrint(const char *str, LCD lcd) {
+void lcdPrint(LCD lcd, const char *str) {
   while (*str) {
-    sendData(*str++, lcd);
+    sendData(lcd, *str++);
   }
 }
 
-void lcdPrintNum(uint32_t num, LCD lcd) {
+void lcdPrintNum(LCD lcd, uint32_t num) {
   char buffer[16];
-  sprintf(buffer, "%lud", num);
-  lcdPrint(buffer, lcd);
+  sprintf(buffer, "%lu", num);
+  lcdPrint(lcd, buffer);
 }
 
-void lcdDisplayOn(LCD lcd) {
-  lcd.displaycontrol |= LCD_DISPLAYON;
-  sendCommand(LCD_DISPLAYCONTROL | lcd.displaycontrol, lcd);
+void lcdDisplayOn(LCD *lcd) {
+  lcd->displaycontrol |= LCD_DISPLAYON;
+  sendCommand(*lcd, LCD_DISPLAYCONTROL | lcd->displaycontrol);
 }
 
-void lcdDisplayOff(LCD lcd) {
-  lcd.displaycontrol &= ~LCD_DISPLAYON;
-  sendCommand(LCD_DISPLAYCONTROL | lcd.displaycontrol, lcd);
+void lcdDisplayOff(LCD *lcd) {
+  lcd->displaycontrol &= ~LCD_DISPLAYON;
+  sendCommand(*lcd, LCD_DISPLAYCONTROL | lcd->displaycontrol);
 }
 
-static void write4bits(uint8_t value, LCD lcd) {
+void sendCommand(LCD lcd, uint8_t cmd) {
+  PORTB &= ~(1 << lcd.rs_pin);
+  write4bits(lcd, cmd >> 4);
+  write4bits(lcd, cmd);
+}
+
+void sendData(LCD lcd, uint8_t data) {
+  PORTB |= (1 << lcd.rs_pin);
+  write4bits(lcd, data >> 4);
+  write4bits(lcd, data);
+}
+
+static void write4bits(LCD lcd, uint8_t value) {
   PORTD = (PORTD & (~0xF0)) | ((((value >> 0) & 0x01) << lcd.data_pins[4]) |
                                (((value >> 1) & 0x01) << lcd.data_pins[5]) |
                                (((value >> 2) & 0x01) << lcd.data_pins[6]) |
@@ -114,28 +126,10 @@ static void pulse(LCD lcd) {
   _delay_us(100);
 }
 
-void sendCommand(uint8_t cmd, LCD lcd) {
-  PORTB &= ~(1 << lcd.rs_pin);
-  write4bits(cmd >> 4, lcd);
-  write4bits(cmd, lcd);
-}
-
-void sendData(uint8_t data, LCD lcd) {
-  PORTB |= (1 << lcd.rs_pin);
-  write4bits(data >> 4, lcd);
-  write4bits(data, lcd);
-}
-
-static void setRowOffsets(uint8_t row0, uint8_t row1, uint8_t row2,
-                          uint8_t row3, LCD *lcd) {
+static void setRowOffsets(LCD *lcd, uint8_t row0, uint8_t row1, uint8_t row2,
+                          uint8_t row3) {
   lcd->row_offsets[0] = row0;
   lcd->row_offsets[1] = row1;
   lcd->row_offsets[2] = row2;
   lcd->row_offsets[3] = row3;
 }
-
-/* TODO: reorder function parameters
- * TODO: remove unused defines in lcd.h
- * TODO: pass lcd to functions by pointer not value to update the struct
- * TODO: add comments to lcd.h
- */

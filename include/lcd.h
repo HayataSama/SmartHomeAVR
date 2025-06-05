@@ -42,35 +42,57 @@
 #define LCD_5x8DOTS 0x00
 
 typedef struct {
-  uint8_t rs_pin;     // LOW: command. HIGH: character.
-  uint8_t enable_pin; // activated by a HIGH pulse.
-  uint8_t data_pins[8];
+  uint8_t rs_pin;       // LOW: command. HIGH: character.
+  uint8_t enable_pin;   // activated by a HIGH pulse.
+  uint8_t data_pins[8]; // only data_pin[4] to data_pin[7] is used
 
-  uint8_t displayfunction;
-  uint8_t displaycontrol;
-  uint8_t displaymode;
+  uint8_t displayfunction; // mode, no. of rows, font
+  uint8_t displaycontrol;  // on/off, cursor, blink
+  uint8_t displaymode;     // ltr/rtl
 
-  uint8_t initialized;
-
-  uint8_t numlines;
-  uint8_t row_offsets[4];
+  uint8_t numlines;       // no. of rows
+  uint8_t row_offsets[4]; // DDRAM address offsets
 } LCD;
 
+// initialize LCD
 LCD lcdInit(uint8_t rs, uint8_t enable, uint8_t d4, uint8_t d5, uint8_t d6,
             uint8_t d7, uint8_t cols, uint8_t rows, uint8_t charsize);
-void lcdHome(LCD lcd);
-void lcdClear(LCD lcd);
-void lcdSetCursor(uint8_t row, uint8_t col, LCD lcd);
-void lcdPrint(const char *str, LCD lcd);
-void lcdPrintNum(uint32_t num, LCD lcd);
-void lcdDisplayOn(LCD lcd);
-void lcdDisplayOff(LCD lcd);
-void sendCommand(uint8_t cmd, LCD lcd);
-void sendData(uint8_t data, LCD lcd);
 
-static void write4bits(uint8_t value, LCD lcd);
+// return cursor to home (0, 0)
+void lcdHome(LCD lcd);
+
+// clear display
+void lcdClear(LCD lcd);
+
+// move cursor to (row, col)
+void lcdSetCursor(LCD lcd, uint8_t row, uint8_t col);
+
+// print an string
+void lcdPrint(LCD lcd, const char *str);
+
+// print a number
+void lcdPrintNum(LCD lcd, uint32_t num);
+
+// turn on display
+void lcdDisplayOn(LCD *lcd);
+
+// turn off display without losing data
+void lcdDisplayOff(LCD *lcd);
+
+// send LCD commands
+void sendCommand(LCD lcd, uint8_t cmd);
+
+// send 1 byte of data
+void sendData(LCD lcd, uint8_t data);
+
+// send 4 bits (used by sendData())
+static void write4bits(LCD lcd, uint8_t value);
+
+// pulse EN pin to let LCD know of new incoming data/command
 static void pulse(LCD lcd);
-static void setRowOffsets(uint8_t row0, uint8_t row1, uint8_t row2,
-                          uint8_t row3, LCD *lcd);
+
+// set the starting DDRAM address offset for each row of the LCD
+static void setRowOffsets(LCD *lcd, uint8_t row0, uint8_t row1, uint8_t row2,
+                          uint8_t row3);
 
 #endif
