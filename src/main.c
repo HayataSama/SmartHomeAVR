@@ -16,6 +16,7 @@ char menu[5][16 + 1] = {
     "1.Change Pass", "2.Temp Thresh", "3.Motor Speed",
     "4.Set Time",    "5.Set Alarm",
 };
+int j = 0;
 
 void filler() {
   for (int i = 0; i < sizeof(menu) / sizeof(menu[0]); i++) {
@@ -56,20 +57,25 @@ int main(void) {
 
   while (1) {
     lcdSetCursor(lcd, 1, 0);
-    removeCursor(1);
-    lcdPrint(lcd, menu[1]);
+    removeCursor((j + 1) % 5);
+    lcdPrint(lcd, menu[(j + 1) % 5]);
     lcdSetCursor(lcd, 0, 0);
-    addCursor(0);
-    lcdPrint(lcd, menu[0]);
+    addCursor(j);
+    lcdPrint(lcd, menu[j]);
     _delay_ms(1000);
 
     lcdSetCursor(lcd, 0, 0);
-    removeCursor(0);
-    lcdPrint(lcd, menu[0]);
+    removeCursor(j);
+    lcdPrint(lcd, menu[j]);
     lcdSetCursor(lcd, 1, 0);
-    addCursor(1);
-    lcdPrint(lcd, menu[1]);
+    addCursor((j + 1) % 5);
+    lcdPrint(lcd, menu[(j + 1) % 5]);
     _delay_ms(1000);
+
+    j++;
+    if (j >= 5) {
+      j = 0;
+    }
   }
 
   // while (1) {
