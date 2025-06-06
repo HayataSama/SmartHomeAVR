@@ -4,6 +4,8 @@
         "iom328p.h": "c",
         "inttypes.h": "c",
         "lcd.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "adc.h": "c",
+        "string.h": "c"
     }
 }
