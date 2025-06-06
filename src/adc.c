@@ -7,6 +7,11 @@ void adcInit() {
 
   // Enable ADC, set prescaler to 128 (for 16MHz clock)
   ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+
+  // Perform a dummy conversion to stabilize ADC
+  ADCSRA |= (1 << ADSC);
+  while (ADCSRA & (1 << ADSC))
+    ;
 }
 
 uint16_t adcRead(uint8_t ch) {

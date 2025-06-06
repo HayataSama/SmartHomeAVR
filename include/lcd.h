@@ -1,5 +1,5 @@
-#ifndef lcd_h
-#define lcd_h
+#ifndef LCD_H
+#define LCD_H
 
 #include <inttypes.h>
 
