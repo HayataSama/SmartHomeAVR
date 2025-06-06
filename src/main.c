@@ -27,7 +27,6 @@ char tmp[4];     // for password
 Input chr;
 uint8_t superTmp;
 
-char password[4] = "1212";
 int c = 0;
 int myC = 0;
 Input keyInput = 0;
@@ -100,8 +99,6 @@ int main() {
       case STATUS:
         // FIXME: when you go back from menu to status screen the first line
         // doesn't get printed and speed is 37% for some reason lol
-        // FIXME: when you go back from menu to status screen it doesn't want
-        // require password again even if password is changed
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
         sprintf(buffer, "Temp:%dC Motor:%d", vars.currentTemp, vars.motorOn);
@@ -113,28 +110,60 @@ int main() {
         break;
 
       case PASS:
+        tmp[0] = '\0';
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
         lcdPrint(lcd, "Enter Password:");
         lcdSetCursor(lcd, 1, 0);
 
-        /* user types password and presses enter */
+        // FIXME: limit this (and probably other inputs) to 4 chars
+        do {
+          chr = getKeypad();
+          _delay_ms(100);
+          if (chr == UP) {
+            // chr is 1
+            lcdClear(lcd);
+            lcdSetCursor(lcd, 0, 0);
+            lcdPrint(lcd, "Enter Password:");
+            lcdSetCursor(lcd, 1, 0);
+            sprintf(tmp + strlen(tmp), "%d", 1);
+            lcdPrint(lcd, tmp);
+          } else if (chr == DOWN) {
+            // chr is 2
+            lcdClear(lcd);
+            lcdSetCursor(lcd, 0, 0);
+            lcdPrint(lcd, "Enter Password:");
+            lcdSetCursor(lcd, 1, 0);
+            sprintf(tmp + strlen(tmp), "%d", 2);
+            lcdPrint(lcd, tmp);
+          } else if (chr == ENTER && (strlen(tmp) == 4)) {
+            // FIXME: this line doesn't want to work for some reason
+            // and accepts any password
+            if (strcmp(tmp, vars.password)) {
+              lcdClear(lcd);
+              lcdSetCursor(lcd, 0, 0);
+              lcdPrint(lcd, "uwu");
+              _delay_ms(2000);
+              currentState = MENU;
+              lastState = PASS;
+              break;
+            } else {
+              // FIXME: make this show a failure screen
+              lcdClear(lcd);
+              lcdSetCursor(lcd, 0, 0);
+              lcdPrint(lcd, "not uwu");
+              _delay_ms(2000);
+              currentState = STATUS;
+              lastState = PASS;
+              break;
+            }
+          } else if (chr == BACK) {
+            currentState = STATUS;
+            lastState = PASS;
+            break;
+          }
+        } while (1);
 
-        if (strcmp(password, vars.password)) {
-          lcdClear(lcd);
-          lcdSetCursor(lcd, 0, 0);
-          lcdPrint(lcd, "uwu");
-          currentState = MENU;
-          lastState = PASS;
-        } else {
-          // FIXME: make this show a failure screen
-          lcdClear(lcd);
-          lcdSetCursor(lcd, 0, 0);
-          lcdPrint(lcd, "not uwu");
-          _delay_ms(2000);
-          currentState = STATUS;
-          lastState = PASS;
-        }
         break;
 
       case MENU:
@@ -498,6 +527,9 @@ int main() {
 
 // TODO: make a function for handling keypad input depending on state
 // instead of re-writing ifs everytime
+
+// TODO: add failure screen
+// TODO: add success screen to each screen
 
 // every time we press back, we want to go to the lastState (probably)
 // and also if we pressed back and we are going to land on menu we should
