@@ -1,7 +1,9 @@
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#ifndef UTIL_H
+#define UTIL_H
 
 #include <string.h>
+
+typedef enum { NOINPUT, UP, ENTER, DOWN, BACK } Input;
 
 // fill empty chars in a fixed-size string with filler
 void filler(char *str, size_t size, char filler);
@@ -11,5 +13,7 @@ void addCursor(char *str);
 
 // remove "<<" cursor at the end of an string
 void removeCursor(char *str);
+
+Input getKeypad();
 
 #endif

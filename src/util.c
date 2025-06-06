@@ -1,3 +1,7 @@
+#include "include/util.h"
+#include "include/adc.h"
+#include <avr/io.h>
+#include <inttypes.h>
 #include <string.h>
 
 // fill empty chars in a fixed-size string with filler
@@ -22,4 +26,21 @@ void removeCursor(char *str) {
   *c = ' ';
   c--;
   *c = ' ';
+}
+
+Input getKeypad() {
+  uint16_t adc = adcRead(0);
+  if (adc > 510) {
+    return NOINPUT;
+  } else if (adc > 450 && adc < 510) {
+    return BACK;
+  } else if (adc > 280 && adc < 340) {
+    return DOWN;
+  } else if (adc > 100 && adc < 160) {
+    return UP;
+  } else if ((adc >= 0) && (adc < 50)) {
+    return ENTER;
+  } else {
+    return NOINPUT;
+  }
 }
