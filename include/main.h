@@ -11,16 +11,24 @@ typedef enum {
   CHANGE_PASS,
   CHANGE_TEMP,
   CHANGE_SPEED,
-  CHANGE_TIME
+  CHANGE_TIME,
+  SET_ALARM,
+  SUCCESS
 } State;
 
 typedef struct {
-  uint8_t temp;
+  uint8_t currentTemp;
+  uint8_t lastTemp;
+  int8_t tempDiff;
   uint8_t motorOn;
-  uint8_t maxSpeed;
-} Vars;
+  uint8_t speed;
 
-const uint16_t PASSWORD = 1234;
+  uint8_t maxSpeed;
+  char password[4];
+  uint8_t tempThreshold;
+  uint8_t time[3];
+  uint8_t alarm[3];
+} Vars;
 
 char menu[5][16 + 1] = {
     // +1 is for '\0' null terminator
