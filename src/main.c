@@ -374,16 +374,108 @@ int main() {
       case CHANGE_TIME:
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        lcdPrint(lcd, "time");
-        _delay_ms(1000);
+        lcdPrint(lcd, "Set Time:");
+        lcdSetCursor(lcd, 1, 0);
+        sprintf(buffer, "%02d:%02d:%02d", vars.time[0], vars.time[1],
+                vars.time[2]);
+        lcdPrint(lcd, buffer);
+        uint8_t myTmp[3];
+        for (int i = 0; i < 3; i++) {
+          myTmp[i] = vars.time[i];
+        }
+
+        for (int i = 0; i < 3; i++) {
+          while (1) {
+            keyInput = getKeypad();
+            _delay_ms(100);
+
+            if (keyInput == UP) {
+              myTmp[i]++;
+              lcdClear(lcd);
+              lcdSetCursor(lcd, 0, 0);
+              lcdPrint(lcd, "Set Time:");
+              lcdSetCursor(lcd, 1, 0);
+              sprintf(buffer, "%02d:%02d:%02d", myTmp[0], myTmp[1], myTmp[2]);
+              lcdPrint(lcd, buffer);
+            }
+            if (keyInput == DOWN) {
+              myTmp[i]--;
+              lcdClear(lcd);
+              lcdSetCursor(lcd, 0, 0);
+              lcdPrint(lcd, "Set Time:");
+              lcdSetCursor(lcd, 1, 0);
+              sprintf(buffer, "%02d:%02d:%02d", myTmp[0], myTmp[1], myTmp[2]);
+              lcdPrint(lcd, buffer);
+            }
+            if (keyInput == ENTER) {
+              vars.time[i] = myTmp[i];
+              break;
+            }
+            if (keyInput == BACK) {
+              i -= 2;
+              break;
+            }
+          }
+          // if cursor is on first digit, back means go back to menu
+          if (i < 0) {
+            break;
+          }
+        }
         currentState = MENU;
         lastState = CHANGE_TIME;
         break;
       case SET_ALARM:
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        lcdPrint(lcd, "alarm");
-        _delay_ms(1000);
+        lcdPrint(lcd, "Set Alarm:");
+        lcdSetCursor(lcd, 1, 0);
+        sprintf(buffer, "%02d:%02d:%02d", vars.alarm[0], vars.alarm[1],
+                vars.alarm[2]);
+        lcdPrint(lcd, buffer);
+        uint8_t myTmpAlarm[3];
+        for (int i = 0; i < 3; i++) {
+          myTmpAlarm[i] = vars.alarm[i];
+        }
+
+        for (int i = 0; i < 3; i++) {
+          while (1) {
+            keyInput = getKeypad();
+            _delay_ms(100);
+
+            if (keyInput == UP) {
+              myTmpAlarm[i]++;
+              lcdClear(lcd);
+              lcdSetCursor(lcd, 0, 0);
+              lcdPrint(lcd, "Set Alarm:");
+              lcdSetCursor(lcd, 1, 0);
+              sprintf(buffer, "%02d:%02d:%02d", myTmpAlarm[0], myTmpAlarm[1],
+                      myTmpAlarm[2]);
+              lcdPrint(lcd, buffer);
+            }
+            if (keyInput == DOWN) {
+              myTmpAlarm[i]--;
+              lcdClear(lcd);
+              lcdSetCursor(lcd, 0, 0);
+              lcdPrint(lcd, "Set Alarm:");
+              lcdSetCursor(lcd, 1, 0);
+              sprintf(buffer, "%02d:%02d:%02d", myTmpAlarm[0], myTmpAlarm[1],
+                      myTmpAlarm[2]);
+              lcdPrint(lcd, buffer);
+            }
+            if (keyInput == ENTER) {
+              vars.alarm[i] = myTmpAlarm[i];
+              break;
+            }
+            if (keyInput == BACK) {
+              i -= 2;
+              break;
+            }
+          }
+          // if cursor is on first digit, back means go back to menu
+          if (i < 0) {
+            break;
+          }
+        }
         currentState = MENU;
         lastState = SET_ALARM;
         break;
