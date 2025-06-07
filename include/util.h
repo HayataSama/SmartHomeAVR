@@ -1,6 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <inttypes.h>
 #include <string.h>
 
 typedef enum { NOINPUT, UP, ENTER, DOWN, BACK } Input;
@@ -15,5 +16,9 @@ void addCursor(char *str);
 void removeCursor(char *str);
 
 Input getKeypad();
+
+void pmwInit();
+
+void pwmSetDuty(uint8_t channel, uint8_t duty_cycle);
 
 #endif

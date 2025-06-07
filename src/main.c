@@ -119,6 +119,9 @@ void systemInit() {
   // init adc
   adcInit();
 
+  // init timer 2 pwm (ch0: PB3, ch1: PD3)
+  pmwInit();
+
   // set default state
   currentState = STATUS;
   lastState = NOSTATE;
@@ -157,6 +160,7 @@ void motorControl() {
       vars.speed = 0;
     }
   }
+  pwmSetDuty(1, vars.speed * 255 / 100);
 }
 
 void displayStatus() {
@@ -620,9 +624,5 @@ void displayMenu() {
   }
 }
 
-// TODO: make a function for handling keypad input depending on state
-// instead of re-writing ifs everytime
-// TODO: do optional parts of the project
 // TODO: search for 7-segment solution
-// TODO: pwm
-// TODO: timer for updating clock
+// TODO: learn timers to implement a watchdog timer and RTC
