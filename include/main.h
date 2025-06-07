@@ -13,7 +13,8 @@ typedef enum {
   CHANGE_SPEED,
   CHANGE_TIME,
   SET_ALARM,
-  SUCCESS
+  SUCCESS,
+  FAILURE
 } State;
 
 typedef struct {
@@ -24,7 +25,7 @@ typedef struct {
   uint8_t speed;
 
   uint8_t maxSpeed;
-  char password[4];
+  char password[4 + 1];
   uint8_t tempThreshold;
   uint8_t time[3];
   uint8_t alarm[3];

@@ -113,23 +113,12 @@ int main() {
             sprintf(tmp + strlen(tmp), "%d", 2);
             lcdPrint(lcd, tmp);
           } else if (chr == ENTER && (strlen(tmp) == 4)) {
-            // FIXME: this line doesn't want to work for some reason
-            // and accepts any password
-            if (strcmp(tmp, vars.password)) {
-              lcdClear(lcd);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, "uwu");
-              _delay_ms(2000);
+            if (strcmp(tmp, vars.password) == 0) {
               currentState = MENU;
               lastState = PASS;
               break;
             } else {
-              // FIXME: make this show a failure screen
-              lcdClear(lcd);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, "not uwu");
-              _delay_ms(2000);
-              currentState = STATUS;
+              currentState = FAILURE;
               lastState = PASS;
               break;
             }
@@ -494,6 +483,21 @@ int main() {
         currentState = MENU;
         lastState = SUCCESS;
         break;
+      case FAILURE:
+        switch (lastState) {
+        case PASS:
+          lcdClear(lcd);
+          lcdSetCursor(lcd, 0, 0);
+          lcdPrint(lcd, "Pass Incorrect");
+          _delay_ms(1000);
+          currentState = STATUS;
+          lastState = FAILURE;
+          break;
+
+        default:
+          break;
+        }
+        break;
       }
     }
   }
@@ -514,7 +518,7 @@ int main() {
 // TODO: fix bugs
 // TODO: do optional parts of the project
 // TODO: add comments and documentation to functions
-// TODO: clean up code, nename variables, create functions, etc.
+// TODO: clean up code, rename variables, create functions, etc.
 // TODO: search for 7-segment solution
 // TODO: EEPROM
 // TODO: pwm
