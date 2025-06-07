@@ -525,7 +525,7 @@ int main() {
 void motorControl() {
   // read new temperature from sensor
   vars.lastTemp = vars.currentTemp;
-  vars.currentTemp = (uint8_t)(adcRead(1) * MAX_TEMP / 1023);
+  vars.currentTemp = (uint8_t)((adcRead(1) * MAX_TEMP) >> 10);
   vars.tempDiff = vars.currentTemp - vars.lastTemp;
 
   // check if motor should be turned on
