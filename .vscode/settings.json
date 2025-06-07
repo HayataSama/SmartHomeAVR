@@ -6,6 +6,9 @@
         "lcd.h": "c",
         "stdio.h": "c",
         "adc.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "interrupt.h": "c",
+        "eeprom.h": "c",
+        "util.h": "c"
     }
 }

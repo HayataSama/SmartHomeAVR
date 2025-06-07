@@ -2,6 +2,7 @@
 #include "include/adc.h"
 #include "include/lcd.h"
 #include "include/util.h"
+#include <avr/eeprom.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <inttypes.h>
@@ -15,16 +16,13 @@ State lastState;
 char buffer[BUFFER_SIZE];             // text buffer
 char passBuffer[PASSWORD_LENGTH + 1]; // password buffer
 Input keyInput = 0;
-Vars vars = {.currentTemp = 0,
-             .lastTemp = 0,
-             .tempDiff = 0,
-             .motorOn = 0,
-             .speed = 0,
-             .maxSpeed = 10,
-             .password = "1212",
-             .tempThreshold = 10,
-             .time = {0, 0, 0},
-             .alarm = {0, 0, 0}};
+Vars vars = {
+    .currentTemp = 0,
+    .lastTemp = 0,
+    .tempDiff = 0,
+    .motorOn = 0,
+    .speed = 0,
+};
 
 // ISR for PC0 (Keypad)
 ISR(PCINT1_vect) {
@@ -85,6 +83,25 @@ int main() {
 }
 
 void systemInit() {
+  /*
+    // write default values to eeprom for the very first time
+    eeprom_write_byte((uint8_t *)0x00, vars.maxSpeed);
+    eeprom_write_byte((uint8_t *)0x01, vars.tempThreshold);
+    eeprom_write_block((const void *)vars.time, (void *)0x02,
+    sizeof(vars.time)); eeprom_write_block((const void *)vars.alarm, (void
+    *)0x05,
+                       sizeof(vars.alarm));
+    eeprom_write_block((const void *)vars.password, (void *)0x08,
+                       sizeof(vars.password));
+  */
+
+  vars.maxSpeed = eeprom_read_byte((uint8_t *)0x00);
+  vars.tempThreshold = eeprom_read_byte((uint8_t *)0x01);
+  eeprom_read_block((void *)vars.time, (const void *)0x02, sizeof(vars.time));
+  eeprom_read_block((void *)vars.alarm, (const void *)0x05, sizeof(vars.alarm));
+  eeprom_read_block((void *)vars.password, (const void *)0x08,
+                    sizeof(vars.password));
+
   // configure PC0 "pin change" interrupt
   PCICR |= (1 << PCIE1);
   PCMSK1 |= (1 << PCINT8);
@@ -279,6 +296,9 @@ void changePassword() {
     } else if (input == ENTER) {
       if (strlen(passBuffer) == PASSWORD_LENGTH) {
         strcpy(vars.password, passBuffer);
+        // update EEPROM
+        eeprom_write_block((const void *)vars.password, (void *)0x08,
+                           sizeof(vars.password));
         displaySuccess("Pass Changed");
         currentState = MENU;
         lastState = CHANGE_PASS;
@@ -337,8 +357,11 @@ void changeTime() {
           // if cursor is on last digit, enter means save changes
           for (int i = 0; i < 3; i++) {
             vars.time[i] = timeBuffer[i];
-            displaySuccess("Time Changed");
           }
+          displaySuccess("Time Changed");
+          // update EEPROM
+          eeprom_write_block((const void *)vars.time, (void *)0x02,
+                             sizeof(vars.time));
         }
         break;
 
@@ -400,8 +423,11 @@ void setAlarm() {
         if (i == 2) {
           for (int i = 0; i < 3; i++) {
             vars.alarm[i] = alarmBuffer[i];
-            displaySuccess("Alarm Changed");
           }
+          displaySuccess("Alarm Changed");
+          // update EEPROM
+          eeprom_write_block((const void *)vars.alarm, (void *)0x05,
+                             sizeof(vars.alarm));
         }
         break;
         ;
@@ -449,6 +475,8 @@ void changeSpeed() {
     } else if (keyInput == ENTER) {
       displaySuccess("Speed Changed");
       vars.maxSpeed = tempSpeed;
+      // update EEPROM
+      eeprom_write_byte((uint8_t *)0x00, vars.maxSpeed);
       break;
 
     } else if (keyInput == BACK) {
@@ -488,6 +516,8 @@ void changeTemp() {
 
     } else if (keyInput == ENTER) {
       vars.tempThreshold = tempTemp;
+      // update EEPROM
+      eeprom_write_byte((uint8_t *)0x01, vars.tempThreshold);
       displaySuccess("Temp Changed");
       break;
 
@@ -594,6 +624,5 @@ void displayMenu() {
 // instead of re-writing ifs everytime
 // TODO: do optional parts of the project
 // TODO: search for 7-segment solution
-// TODO: EEPROM
 // TODO: pwm
 // TODO: timer for updating clock
