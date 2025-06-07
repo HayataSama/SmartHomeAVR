@@ -175,7 +175,8 @@ void displayStatus() {
   lcdSetCursor(lcd, 1, 0);
   snprintf(buffer, BUFFER_SIZE, "Speed:%d%%of%d%%", vars.speed, vars.maxSpeed);
   lcdPrint(lcd, buffer);
-  _delay_ms(500); // so screen doesn't get updated very frequently
+  // to prevent screen refreshing very fast
+  _delay_ms(500);
 }
 
 void passwordHandler() {
@@ -187,6 +188,9 @@ void passwordHandler() {
   lcdSetCursor(lcd, 0, 0);
   lcdPrint(lcd, "Enter Password:");
   lcdSetCursor(lcd, 1, 0);
+
+  // to prevent accidentally pressing enter or back
+  _delay_ms(750);
 
   while (1) {
     input = getKeypad();
@@ -270,6 +274,9 @@ void changePassword() {
   snprintf(buffer, BUFFER_SIZE, "New Pass:%s", passBuffer);
   lcdPrint(lcd, buffer);
 
+  // to prevent accidentally pressing enter or back
+  _delay_ms(750);
+
   while (1) {
     input = getKeypad();
     _delay_ms(100);
@@ -329,6 +336,9 @@ void changeTime() {
   snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", vars.time[0], vars.time[1],
            vars.time[2]);
   lcdPrint(lcd, buffer);
+
+  // to prevent accidentally pressing enter or back
+  _delay_ms(750);
 
   for (int i = 0; i < 3; i++) {
     timeBuffer[i] = vars.time[i];
@@ -397,6 +407,9 @@ void setAlarm() {
            vars.alarm[2]);
   lcdPrint(lcd, buffer);
 
+  // to prevent accidentally pressing enter or back
+  _delay_ms(750);
+
   for (int i = 0; i < 3; i++) {
     alarmBuffer[i] = vars.alarm[i];
   }
@@ -461,6 +474,9 @@ void changeSpeed() {
   snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", vars.maxSpeed);
   lcdPrint(lcd, buffer);
 
+  // to prevent accidentally pressing enter or back
+  _delay_ms(750);
+
   while (1) {
     keyInput = getKeypad();
     _delay_ms(100);
@@ -502,6 +518,9 @@ void changeTemp() {
   lcdSetCursor(lcd, 0, 0);
   snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", vars.tempThreshold);
   lcdPrint(lcd, buffer);
+
+  // to prevent accidentally pressing enter or back
+  _delay_ms(750);
 
   while (1) {
     keyInput = getKeypad();
@@ -553,6 +572,9 @@ void displayMenu() {
   // print second line
   lcdSetCursor(lcd, 1, 0);
   lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
+
+  // to prevent accidentally pressing enter or back
+  _delay_ms(750);
 
   while (1) {
     keyInput = getKeypad();
