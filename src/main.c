@@ -22,8 +22,8 @@ Vars vars = {.currentTemp = 0,
              .tempThreshold = 10,
              .time = {0, 0, 0},
              .alarm = {0, 0, 0}};
-char buffer[16]; // generic buffer representing one line on display
-char tmp[4];     // temporary password buffer
+char buffer[16];        // generic buffer representing one line on display
+char passBuffer[4 + 1]; // temporary password buffer
 Input chr;
 uint8_t superTmp;
 
@@ -86,34 +86,32 @@ int main() {
         break;
 
       case PASS:
-        tmp[0] = '\0';
+        passBuffer[0] = '\0';
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
         lcdPrint(lcd, "Enter Password:");
         lcdSetCursor(lcd, 1, 0);
-
-        // FIXME: limit this (and probably other inputs) to 4 chars
         do {
           chr = getKeypad();
           _delay_ms(100);
-          if (chr == UP) {
+          if (chr == UP && strlen(passBuffer) < 4) {
             // chr is 1
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
             lcdPrint(lcd, "Enter Password:");
             lcdSetCursor(lcd, 1, 0);
-            sprintf(tmp + strlen(tmp), "%d", 1);
-            lcdPrint(lcd, tmp);
-          } else if (chr == DOWN) {
+            sprintf(passBuffer + strlen(passBuffer), "%d", 1);
+            lcdPrint(lcd, passBuffer);
+          } else if (chr == DOWN && strlen(passBuffer) < 4) {
             // chr is 2
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
             lcdPrint(lcd, "Enter Password:");
             lcdSetCursor(lcd, 1, 0);
-            sprintf(tmp + strlen(tmp), "%d", 2);
-            lcdPrint(lcd, tmp);
-          } else if (chr == ENTER && (strlen(tmp) == 4)) {
-            if (strcmp(tmp, vars.password) == 0) {
+            sprintf(passBuffer + strlen(passBuffer), "%d", 2);
+            lcdPrint(lcd, passBuffer);
+          } else if (chr == ENTER && (strlen(passBuffer) == 4)) {
+            if (strcmp(passBuffer, vars.password) == 0) {
               currentState = MENU;
               lastState = PASS;
               break;
@@ -254,13 +252,10 @@ int main() {
         }
         break;
       case CHANGE_PASS:
-        // FIXME: handle the case where user inputs more than 4 chars
-        // probably reset the tmp buffer and start over.
         // clear previously set password
-        tmp[0] = '\0';
+        passBuffer[0] = '\0';
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        // FIXME: some other stuff get printed after old pass
         sprintf(buffer, "Old Pass:%s", vars.password);
         lcdPrint(lcd, buffer);
 
@@ -268,23 +263,26 @@ int main() {
         do {
           chr = getKeypad();
           _delay_ms(100);
-          if (chr == UP) {
+          if (chr == UP && strlen(passBuffer) < 4) {
             // chr is 1
-            sprintf(tmp + strlen(tmp), "%d", 1);
-          } else if (chr == DOWN) {
+            sprintf(passBuffer + strlen(passBuffer), "%d", 1);
+          } else if (chr == DOWN && strlen(passBuffer) < 4) {
             // chr is 2
-            sprintf(tmp + strlen(tmp), "%d", 2);
-          } else if (chr == ENTER && (strlen(tmp) == 4)) {
-            strcpy(vars.password, tmp);
+            sprintf(passBuffer + strlen(passBuffer), "%d", 2);
+          } else if (chr == ENTER && (strlen(passBuffer) == 4)) {
+            strcpy(vars.password, passBuffer);
             currentState = SUCCESS;
             lastState = CHANGE_PASS;
           } else if (chr == BACK) {
             currentState = MENU;
             lastState = CHANGE_PASS;
           }
-
+          lcdClear(lcd);
+          lcdSetCursor(lcd, 0, 0);
+          sprintf(buffer, "Old Pass:%s", vars.password);
+          lcdPrint(lcd, buffer);
           lcdSetCursor(lcd, 1, 0);
-          sprintf(buffer, "New Pass:%s", tmp);
+          sprintf(buffer, "New Pass:%s", passBuffer);
           lcdPrint(lcd, buffer);
         } while ((chr != ENTER) && (chr != BACK));
 
