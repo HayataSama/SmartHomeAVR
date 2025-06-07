@@ -10,8 +10,16 @@
 #include <util/delay.h>
 
 LCD lcd;
-State currentState;
-State lastState;
+State currentState = STATUS;
+State lastState = NOSTATE;
+char buffer[BUFFER_SIZE];             // text buffer
+char passBuffer[PASSWORD_LENGTH + 1]; // password buffer
+Input chr;
+uint8_t superTmp;
+int menuIndex = 0;
+int menuCursor = 0;
+Input keyInput = 0;
+int flag = 1;
 Vars vars = {.currentTemp = 0,
              .lastTemp = 0,
              .tempDiff = 0,
@@ -22,22 +30,10 @@ Vars vars = {.currentTemp = 0,
              .tempThreshold = 10,
              .time = {0, 0, 0},
              .alarm = {0, 0, 0}};
-char buffer[16 + 1];    // generic buffer representing one line on display
-char passBuffer[4 + 1]; // temporary password buffer
-Input chr;
-uint8_t superTmp;
-
-int c = 0;
-int myC = 0;
-Input keyInput = 0;
-int flag = 1;
 
 // ISR for PC0 (Keypad)
 ISR(PCINT1_vect) {
-  if (PINC & 0x01) {
-    // PC0 is HIGH
-  } else {
-    // PC0 is LOW
+  if (!(PINC & PINC0)) { // PC0 is low
     if (currentState == STATUS) {
       currentState = PASS;
       lastState = STATUS;
@@ -56,13 +52,9 @@ int main() {
   lcdClear(lcd);
   adcInit();
 
-  // setup default state
-  currentState = STATUS;
-  lastState = NOSTATE;
-
   // fill menu items with spaces
   for (int i = 0; i < 5; i++) {
-    filler(menu[i], sizeof(menu[i]), ' ');
+    filler(menu[i], BUFFER_SIZE, ' ');
   }
 
   while (1) {
@@ -77,11 +69,11 @@ int main() {
         // doesn't get printed and speed is 37% for some reason lol
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, sizeof(buffer), "Temp:%dC Motor:%d", vars.currentTemp,
+        snprintf(buffer, BUFFER_SIZE, "Temp:%dC Motor:%d", vars.currentTemp,
                  vars.motorOn);
         lcdPrint(lcd, buffer);
         lcdSetCursor(lcd, 1, 0);
-        snprintf(buffer, sizeof(buffer), "Speed:%d%%of%d%%", vars.speed,
+        snprintf(buffer, BUFFER_SIZE, "Speed:%d%%of%d%%", vars.speed,
                  vars.maxSpeed);
         lcdPrint(lcd, buffer);
         _delay_ms(500); // so screen doesn't get updated very frequently
@@ -96,7 +88,7 @@ int main() {
         do {
           chr = getKeypad();
           _delay_ms(100);
-          if (chr == UP && strlen(passBuffer) < 4) {
+          if (chr == UP && strlen(passBuffer) < PASSWORD_LENGTH) {
             // chr is 1
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
@@ -105,7 +97,7 @@ int main() {
             snprintf(passBuffer + strlen(passBuffer),
                      sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
             lcdPrint(lcd, passBuffer);
-          } else if (chr == DOWN && strlen(passBuffer) < 4) {
+          } else if (chr == DOWN && strlen(passBuffer) < PASSWORD_LENGTH) {
             // chr is 2
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
@@ -114,7 +106,7 @@ int main() {
             snprintf(passBuffer + strlen(passBuffer),
                      sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
             lcdPrint(lcd, passBuffer);
-          } else if (chr == ENTER && (strlen(passBuffer) == 4)) {
+          } else if (chr == ENTER && (strlen(passBuffer) == PASSWORD_LENGTH)) {
             if (strcmp(passBuffer, vars.password) == 0) {
               currentState = MENU;
               lastState = PASS;
@@ -134,23 +126,23 @@ int main() {
         break;
 
       case MENU:
-        if (c == -1) {
-          c = 4;
+        if (menuIndex == -1) {
+          menuIndex = 4;
         }
-        if (c == 5) {
-          c = 0;
+        if (menuIndex == 5) {
+          menuIndex = 0;
         }
         if (flag == 1) {
-          c = 0;
+          menuIndex = 0;
           lcdClear(lcd);
           // print first line
           lcdSetCursor(lcd, 0, 0);
-          addCursor(menu[c]);
-          lcdPrint(lcd, menu[c]);
+          addCursor(menu[menuIndex]);
+          lcdPrint(lcd, menu[menuIndex]);
 
           // print second line
           lcdSetCursor(lcd, 1, 0);
-          lcdPrint(lcd, menu[(c + 1) % (sizeof(menu) / sizeof(menu[0]))]);
+          lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
           flag = 0;
         }
 
@@ -160,71 +152,71 @@ int main() {
           // CAUTION: too much delay causes unresponsiveness
           _delay_ms(100);
           if (keyInput == UP) {
-            if (myC == 1) {
+            if (menuCursor == 1) {
               // "<<" is on second line
               lcdClear(lcd);
 
               // remove "<<" from second line
               lcdSetCursor(lcd, 1, 0);
-              removeCursor(menu[c]);
-              lcdPrint(lcd, menu[c]);
+              removeCursor(menu[menuIndex]);
+              lcdPrint(lcd, menu[menuIndex]);
 
               // add "<<" to first line
               lcdSetCursor(lcd, 0, 0);
-              // FIXME: when c = 0 it duplicates menu[0] because there is no
-              // menu[-1]
-              addCursor(menu[(c - 1) % (sizeof(menu) / sizeof(menu[0]))]);
-              lcdPrint(lcd, menu[(c - 1) % (sizeof(menu) / sizeof(menu[0]))]);
-              myC = 0;
+              // FIXME: when menuIndex = 0 it duplicates menu[0] because there
+              // is no menu[-1]
+              addCursor(menu[(menuIndex - 1) % MENU_ITEMS]);
+              lcdPrint(lcd, menu[(menuIndex - 1) % MENU_ITEMS]);
+              menuCursor = 0;
             } else {
               // "<<" is on first line
 
               lcdClear(lcd);
               // fix
-              removeCursor(menu[c]);
+              removeCursor(menu[menuIndex]);
               lcdSetCursor(lcd, 1, 0);
-              lcdPrint(lcd, menu[c]);
+              lcdPrint(lcd, menu[menuIndex]);
 
-              addCursor(menu[(c - 1) % (sizeof(menu) / sizeof(menu[0]))]);
+              addCursor(menu[(menuIndex - 1) % MENU_ITEMS]);
               lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, menu[(c - 1) % (sizeof(menu) / sizeof(menu[0]))]);
+              lcdPrint(lcd, menu[(menuIndex - 1) % MENU_ITEMS]);
             }
-            c--;
+            menuIndex--;
             break;
           } else if (keyInput == DOWN) {
-            if (myC == 0) {
+            if (menuCursor == 0) {
               // "<<" is on first line
               lcdClear(lcd);
 
               // remove "<<" from first line
               lcdSetCursor(lcd, 0, 0);
-              removeCursor(menu[c]);
-              lcdPrint(lcd, menu[c]);
+              removeCursor(menu[menuIndex]);
+              lcdPrint(lcd, menu[menuIndex]);
 
               // add "<<" to second line
               lcdSetCursor(lcd, 1, 0);
-              addCursor(menu[(c + 1) % (sizeof(menu) / sizeof(menu[0]))]);
-              lcdPrint(lcd, menu[(c + 1) % (sizeof(menu) / sizeof(menu[0]))]);
-              myC = 1;
+              addCursor(menu[(menuIndex + 1) % MENU_ITEMS]);
+              lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
+              menuCursor = 1;
             } else {
               // "<<" is on second line
 
               lcdClear(lcd);
               // fix
-              removeCursor(menu[c]);
+              removeCursor(menu[menuIndex]);
               lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, menu[c]);
+              lcdPrint(lcd, menu[menuIndex]);
 
-              addCursor(menu[(c + 1) % (sizeof(menu) / sizeof(menu[0]))]);
+              addCursor(menu[(menuIndex + 1) % MENU_ITEMS]);
               lcdSetCursor(lcd, 1, 0);
-              lcdPrint(lcd, menu[(c + 1) % (sizeof(menu) / sizeof(menu[0]))]);
+              lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
             }
 
-            c++;
+            menuIndex++;
             break;
           } else if (keyInput == ENTER) {
             flag = 1;
-            switch (c + 4) {
+            switch (menuIndex + 4) {
             case CHANGE_PASS:
               currentState = CHANGE_PASS;
               lastState = MENU;
@@ -260,22 +252,22 @@ int main() {
         passBuffer[0] = '\0';
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, sizeof(buffer), "Old Pass:%s", vars.password);
+        snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
         lcdPrint(lcd, buffer);
 
         // wait for user input
         do {
           chr = getKeypad();
           _delay_ms(100);
-          if (chr == UP && strlen(passBuffer) < 4) {
+          if (chr == UP && strlen(passBuffer) < PASSWORD_LENGTH) {
             // chr is 1
             snprintf(passBuffer + strlen(passBuffer),
                      sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
-          } else if (chr == DOWN && strlen(passBuffer) < 4) {
+          } else if (chr == DOWN && strlen(passBuffer) < PASSWORD_LENGTH) {
             // chr is 2
             snprintf(passBuffer + strlen(passBuffer),
                      sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
-          } else if (chr == ENTER && (strlen(passBuffer) == 4)) {
+          } else if (chr == ENTER && (strlen(passBuffer) == PASSWORD_LENGTH)) {
             strcpy(vars.password, passBuffer);
             currentState = SUCCESS;
             lastState = CHANGE_PASS;
@@ -285,10 +277,10 @@ int main() {
           }
           lcdClear(lcd);
           lcdSetCursor(lcd, 0, 0);
-          snprintf(buffer, sizeof(buffer), "Old Pass:%s", vars.password);
+          snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
           lcdPrint(lcd, buffer);
           lcdSetCursor(lcd, 1, 0);
-          snprintf(buffer, sizeof(buffer), "New Pass:%s", passBuffer);
+          snprintf(buffer, BUFFER_SIZE, "New Pass:%s", passBuffer);
           lcdPrint(lcd, buffer);
         } while ((chr != ENTER) && (chr != BACK));
 
@@ -299,7 +291,7 @@ int main() {
         // another state so it remains in menu array.
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, sizeof(buffer), "Thresh(C):%d", vars.tempThreshold);
+        snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", vars.tempThreshold);
         lcdPrint(lcd, buffer);
         superTmp = vars.tempThreshold;
 
@@ -310,14 +302,14 @@ int main() {
             superTmp++;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, sizeof(buffer), "Thresh(C):%d", superTmp);
+            snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == DOWN) {
             superTmp--;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, sizeof(buffer), "Thresh(C):%d", superTmp);
+            snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == ENTER) {
@@ -336,7 +328,7 @@ int main() {
       case CHANGE_SPEED:
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, sizeof(buffer), "Max Speed:%d", vars.maxSpeed);
+        snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", vars.maxSpeed);
         lcdPrint(lcd, buffer);
         superTmp = vars.maxSpeed;
 
@@ -347,14 +339,14 @@ int main() {
             superTmp++;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, sizeof(buffer), "Max Speed:%d", superTmp);
+            snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == DOWN) {
             superTmp--;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, sizeof(buffer), "Max Speed:%d", superTmp);
+            snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == ENTER) {
@@ -374,7 +366,7 @@ int main() {
         lcdSetCursor(lcd, 0, 0);
         lcdPrint(lcd, "Set Time:");
         lcdSetCursor(lcd, 1, 0);
-        snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", vars.time[0],
+        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", vars.time[0],
                  vars.time[1], vars.time[2]);
         lcdPrint(lcd, buffer);
         uint8_t myTmp[3];
@@ -393,7 +385,7 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Time:");
               lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmp[0],
+              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmp[0],
                        myTmp[1], myTmp[2]);
               lcdPrint(lcd, buffer);
             }
@@ -403,7 +395,7 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Time:");
               lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmp[0],
+              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmp[0],
                        myTmp[1], myTmp[2]);
               lcdPrint(lcd, buffer);
             }
@@ -429,7 +421,7 @@ int main() {
         lcdSetCursor(lcd, 0, 0);
         lcdPrint(lcd, "Set Alarm:");
         lcdSetCursor(lcd, 1, 0);
-        snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", vars.alarm[0],
+        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", vars.alarm[0],
                  vars.alarm[1], vars.alarm[2]);
         lcdPrint(lcd, buffer);
         uint8_t myTmpAlarm[3];
@@ -448,7 +440,7 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Alarm:");
               lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmpAlarm[0],
+              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmpAlarm[0],
                        myTmpAlarm[1], myTmpAlarm[2]);
               lcdPrint(lcd, buffer);
             }
@@ -458,7 +450,7 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Alarm:");
               lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmpAlarm[0],
+              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmpAlarm[0],
                        myTmpAlarm[1], myTmpAlarm[2]);
               lcdPrint(lcd, buffer);
             }
@@ -533,13 +525,13 @@ int main() {
 void motorControl() {
   // read new temperature from sensor
   vars.lastTemp = vars.currentTemp;
-  vars.currentTemp = (uint8_t)(adcRead(1) * 50 / 1023);
+  vars.currentTemp = (uint8_t)(adcRead(1) * MAX_TEMP / 1023);
   vars.tempDiff = vars.currentTemp - vars.lastTemp;
 
   // check if motor should be turned on
   if ((vars.currentTemp > vars.tempThreshold) && (vars.motorOn == 0)) {
     vars.motorOn = 1;
-    vars.speed = 5;
+    vars.speed = MIN_SPEED;
   } else if (vars.currentTemp < vars.tempThreshold) {
     vars.motorOn = 0;
     vars.speed = 0;
@@ -548,14 +540,14 @@ void motorControl() {
   // adjust motor speed
   if ((vars.motorOn) && (vars.tempDiff > 0)) {
     // if temp is increasing speed up the motor
-    vars.speed += 5;
+    vars.speed += SPEED_STEP_SIZE;
     if (vars.speed > vars.maxSpeed) {
       vars.speed = vars.maxSpeed;
     }
   } else if ((vars.motorOn) && (vars.tempDiff < 0)) {
     // if temp is decreasing speed down the motor
-    vars.speed -= 5;
-    if (vars.speed < 5 || vars.speed > 100) {
+    vars.speed -= SPEED_STEP_SIZE;
+    if (vars.speed < MIN_SPEED || vars.speed > MAX_SPEED) {
       vars.speed = 0;
     }
   }
