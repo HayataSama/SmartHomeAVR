@@ -36,4 +36,7 @@ char menu[5][16 + 1] = {
     "4.Set Time",    "5.Set Alarm",
 };
 
+// read temperature from sensor and adjust the motor
+void motorControl();
+
 #endif

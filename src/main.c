@@ -23,7 +23,7 @@ Vars vars = {.currentTemp = 0,
              .time = {0, 0, 0},
              .alarm = {0, 0, 0}};
 char buffer[16]; // generic buffer representing one line on display
-char tmp[4];     // for password
+char tmp[4];     // temporary password buffer
 Input chr;
 uint8_t superTmp;
 
@@ -32,7 +32,6 @@ int myC = 0;
 Input keyInput = 0;
 int flag = 1;
 
-/* in isr check state and only if it was STATUS respond to it*/
 // ISR for PC0 (Keypad)
 ISR(PCINT1_vect) {
   if (PINC & 0x01) {
@@ -61,37 +60,14 @@ int main() {
   currentState = STATUS;
   lastState = NOSTATE;
 
-  // create menu
+  // fill menu items with spaces
   for (int i = 0; i < 5; i++) {
     filler(menu[i], sizeof(menu[i]), ' ');
   }
 
   while (1) {
-    vars.lastTemp = vars.currentTemp;
-    vars.currentTemp = (uint8_t)(adcRead(1) * 50 / 1023);
-    vars.tempDiff = vars.currentTemp - vars.lastTemp;
-
-    // turn the motor on
-    if ((vars.currentTemp > vars.tempThreshold) && (vars.motorOn == 0)) {
-      vars.motorOn = 1;
-      vars.speed = 5;
-    } else if (vars.currentTemp < vars.tempThreshold) {
-      vars.motorOn = 0;
-      vars.speed = 0;
-    }
-
-    // make motor go brrrrrr
-    if ((vars.motorOn) && (vars.tempDiff > 0)) {
-      vars.speed += 5;
-      if (vars.speed > vars.maxSpeed) {
-        vars.speed = vars.maxSpeed;
-      }
-    } else if ((vars.motorOn) && (vars.tempDiff < 0)) {
-      vars.speed -= 5;
-      if (vars.speed < 5 || vars.speed > 100) {
-        vars.speed = 0;
-      }
-    }
+    // read temperature from sensor and adjust the motor
+    motorControl();
 
     // State machine
     if (currentState != lastState) {
@@ -534,3 +510,43 @@ int main() {
 // every time we press back, we want to go to the lastState (probably)
 // and also if we pressed back and we are going to land on menu we should
 // show the first two items. (if flag == 1)
+
+// TODO: fix bugs
+// TODO: do optional parts of the project
+// TODO: add comments and documentation to functions
+// TODO: clean up code, nename variables, create functions, etc.
+// TODO: search for 7-segment solution
+// TODO: EEPROM
+// TODO: pwm
+// TODO: timer for updating clock
+
+void motorControl() {
+  // read new temperature from sensor
+  vars.lastTemp = vars.currentTemp;
+  vars.currentTemp = (uint8_t)(adcRead(1) * 50 / 1023);
+  vars.tempDiff = vars.currentTemp - vars.lastTemp;
+
+  // check if motor should be turned on
+  if ((vars.currentTemp > vars.tempThreshold) && (vars.motorOn == 0)) {
+    vars.motorOn = 1;
+    vars.speed = 5;
+  } else if (vars.currentTemp < vars.tempThreshold) {
+    vars.motorOn = 0;
+    vars.speed = 0;
+  }
+
+  // adjust motor speed
+  if ((vars.motorOn) && (vars.tempDiff > 0)) {
+    // if temp is increasing speed up the motor
+    vars.speed += 5;
+    if (vars.speed > vars.maxSpeed) {
+      vars.speed = vars.maxSpeed;
+    }
+  } else if ((vars.motorOn) && (vars.tempDiff < 0)) {
+    // if temp is decreasing speed down the motor
+    vars.speed -= 5;
+    if (vars.speed < 5 || vars.speed > 100) {
+      vars.speed = 0;
+    }
+  }
+}
