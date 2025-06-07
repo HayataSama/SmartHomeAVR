@@ -22,8 +22,6 @@ typedef enum {
   CHANGE_SPEED,
   CHANGE_TIME,
   SET_ALARM,
-  SUCCESS,
-  FAILURE
 } State;
 
 typedef struct {
@@ -59,5 +57,23 @@ void passwordHandler();
 
 // show failure screen
 void displayFailure(char *msg);
+
+// show success screen
+void displaySuccess(char *msg);
+
+// change password
+void changePassword();
+
+// change time
+void changeTime();
+
+// set alarm
+void setAlarm();
+
+// change speed
+void changeSpeed();
+
+// change temp
+void changeTemp();
 
 #endif

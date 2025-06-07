@@ -14,7 +14,6 @@ State currentState = STATUS;
 State lastState = NOSTATE;
 char buffer[BUFFER_SIZE];             // text buffer
 char passBuffer[PASSWORD_LENGTH + 1]; // password buffer
-uint8_t superTmp;
 int menuIndex = 0;
 int menuCursor = 0;
 Input keyInput = 0;
@@ -186,256 +185,23 @@ int main() {
         }
         break;
       case CHANGE_PASS:
-        // clear previously set password
-        passBuffer[0] = '\0';
-        lcdClear(lcd);
-        lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
-        lcdPrint(lcd, buffer);
-
-        Input input;
-
-        // wait for user input
-        do {
-          input = getKeypad();
-          _delay_ms(100);
-          if (input == UP && strlen(passBuffer) < PASSWORD_LENGTH) {
-            // input is 1
-            snprintf(passBuffer + strlen(passBuffer),
-                     sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
-          } else if (input == DOWN && strlen(passBuffer) < PASSWORD_LENGTH) {
-            // input is 2
-            snprintf(passBuffer + strlen(passBuffer),
-                     sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
-          } else if (input == ENTER &&
-                     (strlen(passBuffer) == PASSWORD_LENGTH)) {
-            strcpy(vars.password, passBuffer);
-            currentState = SUCCESS;
-            lastState = CHANGE_PASS;
-          } else if (input == BACK) {
-            currentState = MENU;
-            lastState = CHANGE_PASS;
-          }
-          lcdClear(lcd);
-          lcdSetCursor(lcd, 0, 0);
-          snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
-          lcdPrint(lcd, buffer);
-          lcdSetCursor(lcd, 1, 0);
-          snprintf(buffer, BUFFER_SIZE, "New Pass:%s", passBuffer);
-          lcdPrint(lcd, buffer);
-        } while ((input != ENTER) && (input != BACK));
-
+        changePassword();
         break;
+
       case CHANGE_TEMP:
-        // FIXME: when we return from this to menu, 2 items have cursor on them.
-        // it's probably because we don't erase cursor before switching to
-        // another state so it remains in menu array.
-        lcdClear(lcd);
-        lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", vars.tempThreshold);
-        lcdPrint(lcd, buffer);
-        superTmp = vars.tempThreshold;
-
-        while (1) {
-          keyInput = getKeypad();
-          _delay_ms(100);
-          if (keyInput == UP) {
-            superTmp++;
-            lcdClear(lcd);
-            lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", superTmp);
-            lcdPrint(lcd, buffer);
-          }
-          if (keyInput == DOWN) {
-            superTmp--;
-            lcdClear(lcd);
-            lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", superTmp);
-            lcdPrint(lcd, buffer);
-          }
-          if (keyInput == ENTER) {
-            vars.tempThreshold = superTmp;
-            break;
-          }
-          if (keyInput == BACK) {
-            break;
-          }
-        }
-
-        currentState = MENU;
-        lastState = CHANGE_TEMP;
+        changeTemp();
         break;
 
       case CHANGE_SPEED:
-        lcdClear(lcd);
-        lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", vars.maxSpeed);
-        lcdPrint(lcd, buffer);
-        superTmp = vars.maxSpeed;
-
-        while (1) {
-          keyInput = getKeypad();
-          _delay_ms(100);
-          if (keyInput == UP) {
-            superTmp++;
-            lcdClear(lcd);
-            lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", superTmp);
-            lcdPrint(lcd, buffer);
-          }
-          if (keyInput == DOWN) {
-            superTmp--;
-            lcdClear(lcd);
-            lcdSetCursor(lcd, 0, 0);
-            snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", superTmp);
-            lcdPrint(lcd, buffer);
-          }
-          if (keyInput == ENTER) {
-            vars.maxSpeed = superTmp;
-            break;
-          }
-          if (keyInput == BACK) {
-            break;
-          }
-        }
-
-        currentState = MENU;
-        lastState = CHANGE_SPEED;
+        changeSpeed();
         break;
+
       case CHANGE_TIME:
-        lcdClear(lcd);
-        lcdSetCursor(lcd, 0, 0);
-        lcdPrint(lcd, "Set Time:");
-        lcdSetCursor(lcd, 1, 0);
-        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", vars.time[0],
-                 vars.time[1], vars.time[2]);
-        lcdPrint(lcd, buffer);
-        uint8_t myTmp[3];
-        for (int i = 0; i < 3; i++) {
-          myTmp[i] = vars.time[i];
-        }
-
-        for (int i = 0; i < 3; i++) {
-          while (1) {
-            keyInput = getKeypad();
-            _delay_ms(100);
-
-            if (keyInput == UP) {
-              myTmp[i]++;
-              lcdClear(lcd);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, "Set Time:");
-              lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmp[0],
-                       myTmp[1], myTmp[2]);
-              lcdPrint(lcd, buffer);
-            }
-            if (keyInput == DOWN) {
-              myTmp[i]--;
-              lcdClear(lcd);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, "Set Time:");
-              lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmp[0],
-                       myTmp[1], myTmp[2]);
-              lcdPrint(lcd, buffer);
-            }
-            if (keyInput == ENTER) {
-              vars.time[i] = myTmp[i];
-              break;
-            }
-            if (keyInput == BACK) {
-              i -= 2;
-              break;
-            }
-          }
-          // if cursor is on first digit, back means go back to menu
-          if (i < 0) {
-            break;
-          }
-        }
-        currentState = MENU;
-        lastState = CHANGE_TIME;
+        changeTime();
         break;
+
       case SET_ALARM:
-        lcdClear(lcd);
-        lcdSetCursor(lcd, 0, 0);
-        lcdPrint(lcd, "Set Alarm:");
-        lcdSetCursor(lcd, 1, 0);
-        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", vars.alarm[0],
-                 vars.alarm[1], vars.alarm[2]);
-        lcdPrint(lcd, buffer);
-        uint8_t myTmpAlarm[3];
-        for (int i = 0; i < 3; i++) {
-          myTmpAlarm[i] = vars.alarm[i];
-        }
-
-        for (int i = 0; i < 3; i++) {
-          while (1) {
-            keyInput = getKeypad();
-            _delay_ms(100);
-
-            if (keyInput == UP) {
-              myTmpAlarm[i]++;
-              lcdClear(lcd);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, "Set Alarm:");
-              lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmpAlarm[0],
-                       myTmpAlarm[1], myTmpAlarm[2]);
-              lcdPrint(lcd, buffer);
-            }
-            if (keyInput == DOWN) {
-              myTmpAlarm[i]--;
-              lcdClear(lcd);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, "Set Alarm:");
-              lcdSetCursor(lcd, 1, 0);
-              snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", myTmpAlarm[0],
-                       myTmpAlarm[1], myTmpAlarm[2]);
-              lcdPrint(lcd, buffer);
-            }
-            if (keyInput == ENTER) {
-              vars.alarm[i] = myTmpAlarm[i];
-              break;
-            }
-            if (keyInput == BACK) {
-              i -= 2;
-              break;
-            }
-          }
-          // if cursor is on first digit, back means go back to menu
-          if (i < 0) {
-            break;
-          }
-        }
-        currentState = MENU;
-        lastState = SET_ALARM;
-        break;
-      case SUCCESS:
-        if (lastState == CHANGE_PASS) {
-          lcdClear(lcd);
-          lcdSetCursor(lcd, 0, 0);
-          lcdPrint(lcd, "Password Changed");
-          _delay_ms(500);
-        }
-        currentState = MENU;
-        lastState = SUCCESS;
-        break;
-      case FAILURE:
-        switch (lastState) {
-        case PASS:
-          lcdClear(lcd);
-          lcdSetCursor(lcd, 0, 0);
-          lcdPrint(lcd, "Pass Incorrect");
-          _delay_ms(1000);
-          currentState = STATUS;
-          lastState = FAILURE;
-          break;
-
-        default:
-          break;
-        }
+        setAlarm();
         break;
       }
       // lastState = currentState;
@@ -602,4 +368,269 @@ void displayFailure(char *msg) {
   snprintf(buffer, BUFFER_SIZE, "%s", msg);
   lcdPrint(lcd, buffer);
   _delay_ms(1000);
+}
+
+void displaySuccess(char *msg) {
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  snprintf(buffer, BUFFER_SIZE, "%s", msg);
+  lcdPrint(lcd, buffer);
+  _delay_ms(1000);
+}
+
+void changePassword() {
+  passBuffer[0] = '\0';
+  Input input;
+
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
+  lcdPrint(lcd, buffer);
+  lcdSetCursor(lcd, 1, 0);
+  snprintf(buffer, BUFFER_SIZE, "New Pass:%s", passBuffer);
+  lcdPrint(lcd, buffer);
+
+  while (1) {
+    input = getKeypad();
+    _delay_ms(100);
+
+    if (input == UP) {
+      if (strlen(passBuffer) < PASSWORD_LENGTH) {
+        // input is 1
+        snprintf(passBuffer + strlen(passBuffer),
+                 sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
+        lcdPrint(lcd, buffer);
+        lcdSetCursor(lcd, 1, 0);
+        snprintf(buffer, BUFFER_SIZE, "New Pass:%s", passBuffer);
+        lcdPrint(lcd, buffer);
+      }
+    } else if (input == DOWN) {
+      if (strlen(passBuffer) < PASSWORD_LENGTH) {
+        // input is 2
+        snprintf(passBuffer + strlen(passBuffer),
+                 sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
+        lcdPrint(lcd, buffer);
+        lcdSetCursor(lcd, 1, 0);
+        snprintf(buffer, BUFFER_SIZE, "New Pass:%s", passBuffer);
+        lcdPrint(lcd, buffer);
+      }
+    } else if (input == ENTER) {
+      if (strlen(passBuffer) == PASSWORD_LENGTH) {
+        strcpy(vars.password, passBuffer);
+        displaySuccess("Pass Changed");
+        currentState = MENU;
+        lastState = CHANGE_PASS;
+        break;
+      }
+    } else if (input == BACK) {
+      currentState = MENU;
+      lastState = CHANGE_PASS;
+      break;
+    }
+  }
+}
+
+void changeTime() {
+  uint8_t timeBuffer[3];
+
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  lcdPrint(lcd, "Set Time:");
+  lcdSetCursor(lcd, 1, 0);
+  snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", vars.time[0], vars.time[1],
+           vars.time[2]);
+  lcdPrint(lcd, buffer);
+
+  for (int i = 0; i < 3; i++) {
+    timeBuffer[i] = vars.time[i];
+  }
+
+  for (int i = 0; i < 3; i++) {
+    while (1) {
+      keyInput = getKeypad();
+      _delay_ms(100);
+
+      if (keyInput == UP) {
+        timeBuffer[i]++;
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        lcdPrint(lcd, "Set Time:");
+        lcdSetCursor(lcd, 1, 0);
+        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", timeBuffer[0],
+                 timeBuffer[1], timeBuffer[2]);
+        lcdPrint(lcd, buffer);
+
+      } else if (keyInput == DOWN) {
+        timeBuffer[i]--;
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        lcdPrint(lcd, "Set Time:");
+        lcdSetCursor(lcd, 1, 0);
+        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", timeBuffer[0],
+                 timeBuffer[1], timeBuffer[2]);
+        lcdPrint(lcd, buffer);
+
+      } else if (keyInput == ENTER) {
+        vars.time[i] = timeBuffer[i];
+        break;
+
+      } else if (keyInput == BACK) {
+        i--;
+        break;
+      }
+    }
+    // if cursor is on first digit, back means go back to menu
+    if (i < 0) {
+      break;
+    }
+  }
+  currentState = MENU;
+  lastState = CHANGE_TIME;
+}
+
+void setAlarm() {
+  uint8_t alarmBuffer[3];
+
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  lcdPrint(lcd, "Set Alarm:");
+  lcdSetCursor(lcd, 1, 0);
+  snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", vars.alarm[0], vars.alarm[1],
+           vars.alarm[2]);
+  lcdPrint(lcd, buffer);
+
+  for (int i = 0; i < 3; i++) {
+    alarmBuffer[i] = vars.alarm[i];
+  }
+
+  for (int i = 0; i < 3; i++) {
+    while (1) {
+      keyInput = getKeypad();
+      _delay_ms(100);
+
+      if (keyInput == UP) {
+        alarmBuffer[i]++;
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        lcdPrint(lcd, "Set Alarm:");
+        lcdSetCursor(lcd, 1, 0);
+        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", alarmBuffer[0],
+                 alarmBuffer[1], alarmBuffer[2]);
+        lcdPrint(lcd, buffer);
+
+      } else if (keyInput == DOWN) {
+        alarmBuffer[i]--;
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        lcdPrint(lcd, "Set Alarm:");
+        lcdSetCursor(lcd, 1, 0);
+        snprintf(buffer, BUFFER_SIZE, "%02d:%02d:%02d", alarmBuffer[0],
+                 alarmBuffer[1], alarmBuffer[2]);
+        lcdPrint(lcd, buffer);
+
+      } else if (keyInput == ENTER) {
+        vars.alarm[i] = alarmBuffer[i];
+        break;
+
+      } else if (keyInput == BACK) {
+        i -= 1;
+        break;
+      }
+    }
+    // if cursor is on first digit, back means go back to menu
+    if (i < 0) {
+      break;
+    }
+  }
+  currentState = MENU;
+  lastState = SET_ALARM;
+}
+
+void changeSpeed() {
+  uint8_t tempSpeed = vars.maxSpeed;
+
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", vars.maxSpeed);
+  lcdPrint(lcd, buffer);
+
+  while (1) {
+    keyInput = getKeypad();
+    _delay_ms(100);
+
+    if (keyInput == UP) {
+      tempSpeed++;
+      lcdClear(lcd);
+      lcdSetCursor(lcd, 0, 0);
+      snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", tempSpeed);
+      lcdPrint(lcd, buffer);
+
+    } else if (keyInput == DOWN) {
+      tempSpeed--;
+      lcdClear(lcd);
+      lcdSetCursor(lcd, 0, 0);
+      snprintf(buffer, BUFFER_SIZE, "Max Speed:%d", tempSpeed);
+      lcdPrint(lcd, buffer);
+
+    } else if (keyInput == ENTER) {
+      displaySuccess("Speed Changed");
+      vars.maxSpeed = tempSpeed;
+      break;
+
+    } else if (keyInput == BACK) {
+      break;
+    }
+  }
+
+  currentState = MENU;
+  lastState = CHANGE_SPEED;
+}
+
+void changeTemp() {
+  // FIXME: when we return from this to menu, 2 items have cursor on them.
+  // it's probably because we don't erase cursor before switching to
+  // another state so it remains in menu array.
+  uint8_t tempTemp = vars.tempThreshold;
+
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", vars.tempThreshold);
+  lcdPrint(lcd, buffer);
+
+  while (1) {
+    keyInput = getKeypad();
+    _delay_ms(100);
+
+    if (keyInput == UP) {
+      tempTemp++;
+      lcdClear(lcd);
+      lcdSetCursor(lcd, 0, 0);
+      snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", tempTemp);
+      lcdPrint(lcd, buffer);
+
+    } else if (keyInput == DOWN) {
+      tempTemp--;
+      lcdClear(lcd);
+      lcdSetCursor(lcd, 0, 0);
+      snprintf(buffer, BUFFER_SIZE, "Thresh(C):%d", tempTemp);
+      lcdPrint(lcd, buffer);
+
+    } else if (keyInput == ENTER) {
+      vars.tempThreshold = tempTemp;
+      displaySuccess("Temp Changed");
+      break;
+
+    } else if (keyInput == BACK) {
+      break;
+    }
+  }
+
+  currentState = MENU;
+  lastState = CHANGE_TEMP;
 }
