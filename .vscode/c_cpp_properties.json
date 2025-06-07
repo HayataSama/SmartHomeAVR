@@ -28,7 +28,11 @@
                 "DDD4",
                 "DDD5",
                 "DDD6",
-                "DDD7"
+                "DDD7",
+                "PCICR",
+                "PCIE1",
+                "PCMSK1",
+                "PCINT8"
             ],
             "compilerPath": "/usr/bin/avr-gcc",
             "cStandard": "gnu99",
