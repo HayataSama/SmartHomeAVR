@@ -10,14 +10,11 @@
 #include <util/delay.h>
 
 LCD lcd;
-State currentState = STATUS;
-State lastState = NOSTATE;
+State currentState;
+State lastState;
 char buffer[BUFFER_SIZE];             // text buffer
 char passBuffer[PASSWORD_LENGTH + 1]; // password buffer
-int menuIndex = 0;
-int menuCursor = 0;
 Input keyInput = 0;
-int flag = 1;
 Vars vars = {.currentTemp = 0,
              .lastTemp = 0,
              .tempDiff = 0,
@@ -58,132 +55,9 @@ int main() {
         break;
 
       case MENU:
-        // fill menu items with spaces
-        for (int i = 0; i < 5; i++) {
-          filler(menu[i], BUFFER_SIZE, ' ');
-        }
-
-        if (menuIndex == -1) {
-          menuIndex = 4;
-        }
-        if (menuIndex == 5) {
-          menuIndex = 0;
-        }
-        if (flag == 1) {
-          menuIndex = 0;
-          lcdClear(lcd);
-          // print first line
-          lcdSetCursor(lcd, 0, 0);
-          addCursor(menu[menuIndex]);
-          lcdPrint(lcd, menu[menuIndex]);
-
-          // print second line
-          lcdSetCursor(lcd, 1, 0);
-          lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
-          flag = 0;
-        }
-
-        while (1) {
-          keyInput = getKeypad();
-          // prevents very fast scrolling
-          // CAUTION: too much delay causes unresponsiveness
-          _delay_ms(100);
-          if (keyInput == UP) {
-            if (menuCursor == 1) {
-              // "<<" is on second line
-              lcdClear(lcd);
-
-              // remove "<<" from second line
-              lcdSetCursor(lcd, 1, 0);
-              removeCursor(menu[menuIndex]);
-              lcdPrint(lcd, menu[menuIndex]);
-
-              // add "<<" to first line
-              lcdSetCursor(lcd, 0, 0);
-              // FIXME: when menuIndex = 0 it duplicates menu[0] because there
-              // is no menu[-1]
-              addCursor(menu[(menuIndex - 1) % MENU_ITEMS]);
-              lcdPrint(lcd, menu[(menuIndex - 1) % MENU_ITEMS]);
-              menuCursor = 0;
-            } else {
-              // "<<" is on first line
-
-              lcdClear(lcd);
-              // fix
-              removeCursor(menu[menuIndex]);
-              lcdSetCursor(lcd, 1, 0);
-              lcdPrint(lcd, menu[menuIndex]);
-
-              addCursor(menu[(menuIndex - 1) % MENU_ITEMS]);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, menu[(menuIndex - 1) % MENU_ITEMS]);
-            }
-            menuIndex--;
-            break;
-          } else if (keyInput == DOWN) {
-            if (menuCursor == 0) {
-              // "<<" is on first line
-              lcdClear(lcd);
-
-              // remove "<<" from first line
-              lcdSetCursor(lcd, 0, 0);
-              removeCursor(menu[menuIndex]);
-              lcdPrint(lcd, menu[menuIndex]);
-
-              // add "<<" to second line
-              lcdSetCursor(lcd, 1, 0);
-              addCursor(menu[(menuIndex + 1) % MENU_ITEMS]);
-              lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
-              menuCursor = 1;
-            } else {
-              // "<<" is on second line
-
-              lcdClear(lcd);
-              // fix
-              removeCursor(menu[menuIndex]);
-              lcdSetCursor(lcd, 0, 0);
-              lcdPrint(lcd, menu[menuIndex]);
-
-              addCursor(menu[(menuIndex + 1) % MENU_ITEMS]);
-              lcdSetCursor(lcd, 1, 0);
-              lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
-            }
-
-            menuIndex++;
-            break;
-          } else if (keyInput == ENTER) {
-            flag = 1;
-            switch (menuIndex + 4) {
-            case CHANGE_PASS:
-              currentState = CHANGE_PASS;
-              lastState = MENU;
-              break;
-            case CHANGE_TEMP:
-              currentState = CHANGE_TEMP;
-              lastState = MENU;
-              break;
-            case CHANGE_SPEED:
-              currentState = CHANGE_SPEED;
-              lastState = MENU;
-              break;
-            case CHANGE_TIME:
-              currentState = CHANGE_TIME;
-              lastState = MENU;
-              break;
-            case SET_ALARM:
-              currentState = SET_ALARM;
-              lastState = MENU;
-              break;
-            }
-            break;
-          } else if (keyInput == BACK) {
-            flag = 1;
-            currentState = STATUS;
-            lastState = MENU;
-            break;
-          }
-        }
+        displayMenu();
         break;
+
       case CHANGE_PASS:
         changePassword();
         break;
@@ -204,32 +78,11 @@ int main() {
         setAlarm();
         break;
       }
-      // lastState = currentState;
     }
   }
 
   return 0;
 }
-
-// TODO: make a function for handling keypad input depending on state
-// instead of re-writing ifs everytime
-
-// TODO: add failure screen
-// TODO: add success screen to each screen
-
-// every time we press back, we want to go to the lastState (probably)
-// and also if we pressed back and we are going to land on menu we should
-// show the first two items. (if flag == 1)
-
-// TODO: fix bugs
-// TODO: do optional parts of the project
-// TODO: add comments and documentation to functions
-// TODO: clean up code, rename variables, create functions, etc.
-// TODO: search for 7-segment solution
-// TODO: EEPROM
-// TODO: pwm
-// TODO: timer for updating clock
-// TODO: remove lastState updates
 
 void systemInit() {
   // configure PC0 "pin change" interrupt
@@ -248,6 +101,10 @@ void systemInit() {
 
   // init adc
   adcInit();
+
+  // set default state
+  currentState = STATUS;
+  lastState = NOSTATE;
 
   // clear buffers
   buffer[0] = '\0';
@@ -286,8 +143,6 @@ void motorControl() {
 }
 
 void displayStatus() {
-  // FIXME: when you go back from menu to status screen the first line
-  // doesn't get printed and speed is 37% for some reason lol
   lcdClear(lcd);
   lcdSetCursor(lcd, 0, 0);
   snprintf(buffer, BUFFER_SIZE, "Temp:%dC Motor:%d", vars.currentTemp,
@@ -606,9 +461,6 @@ void changeSpeed() {
 }
 
 void changeTemp() {
-  // FIXME: when we return from this to menu, 2 items have cursor on them.
-  // it's probably because we don't erase cursor before switching to
-  // another state so it remains in menu array.
   uint8_t tempTemp = vars.tempThreshold;
 
   lcdClear(lcd);
@@ -647,3 +499,101 @@ void changeTemp() {
   currentState = MENU;
   lastState = CHANGE_TEMP;
 }
+
+void displayMenu() {
+  int menuIndex = 0;
+
+  // fill menu items with spaces
+  for (int i = 0; i < 5; i++) {
+    filler(menu[i], BUFFER_SIZE, ' ');
+  }
+
+  // print first line
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  addCursor(menu[menuIndex]);
+  lcdPrint(lcd, menu[menuIndex]);
+  // print second line
+  lcdSetCursor(lcd, 1, 0);
+  lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
+
+  while (1) {
+    keyInput = getKeypad();
+    _delay_ms(100);
+
+    if (keyInput == UP) {
+      lcdClear(lcd);
+      removeCursor(menu[menuIndex]);
+      lcdSetCursor(lcd, 1, 0);
+      lcdPrint(lcd, menu[menuIndex]);
+
+      addCursor(menu[(menuIndex + MENU_ITEMS - 1) % MENU_ITEMS]);
+      lcdSetCursor(lcd, 0, 0);
+      lcdPrint(lcd, menu[(menuIndex + MENU_ITEMS - 1) % MENU_ITEMS]);
+
+      menuIndex--;
+      // set lowerboundary
+      if (menuIndex == -1) {
+        menuIndex = 4;
+      }
+
+    } else if (keyInput == DOWN) {
+      lcdClear(lcd);
+      removeCursor(menu[menuIndex]);
+      lcdSetCursor(lcd, 0, 0);
+      lcdPrint(lcd, menu[menuIndex]);
+
+      addCursor(menu[(menuIndex + 1) % MENU_ITEMS]);
+      lcdSetCursor(lcd, 1, 0);
+      lcdPrint(lcd, menu[(menuIndex + 1) % MENU_ITEMS]);
+
+      menuIndex++;
+      // set upper boundary
+      if (menuIndex == 5) {
+        menuIndex = 0;
+      }
+
+    } else if (keyInput == ENTER) {
+      removeCursor(menu[menuIndex]);
+
+      switch (menuIndex + 4) {
+      case CHANGE_PASS:
+        currentState = CHANGE_PASS;
+        lastState = MENU;
+        break;
+      case CHANGE_TEMP:
+        currentState = CHANGE_TEMP;
+        lastState = MENU;
+        break;
+      case CHANGE_SPEED:
+        currentState = CHANGE_SPEED;
+        lastState = MENU;
+        break;
+      case CHANGE_TIME:
+        currentState = CHANGE_TIME;
+        lastState = MENU;
+        break;
+      case SET_ALARM:
+        currentState = SET_ALARM;
+        lastState = MENU;
+        break;
+      }
+      break;
+
+    } else if (keyInput == BACK) {
+      removeCursor(menu[menuIndex]);
+
+      currentState = STATUS;
+      lastState = MENU;
+      break;
+    }
+  }
+}
+
+// TODO: make a function for handling keypad input depending on state
+// instead of re-writing ifs everytime
+// TODO: do optional parts of the project
+// TODO: search for 7-segment solution
+// TODO: EEPROM
+// TODO: pwm
+// TODO: timer for updating clock

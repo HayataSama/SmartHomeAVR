@@ -76,4 +76,7 @@ void changeSpeed();
 // change temp
 void changeTemp();
 
+// dispaly menu
+void displayMenu();
+
 #endif
