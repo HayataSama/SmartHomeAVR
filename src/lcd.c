@@ -81,7 +81,7 @@ void lcdPrint(LCD lcd, const char *str) {
 
 void lcdPrintNum(LCD lcd, uint32_t num) {
   char buffer[16];
-  sprintf(buffer, "%lu", num);
+  snprintf(buffer, sizeof(buffer), "%lu", num);
   lcdPrint(lcd, buffer);
 }
 

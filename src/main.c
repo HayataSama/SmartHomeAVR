@@ -22,7 +22,7 @@ Vars vars = {.currentTemp = 0,
              .tempThreshold = 10,
              .time = {0, 0, 0},
              .alarm = {0, 0, 0}};
-char buffer[16];        // generic buffer representing one line on display
+char buffer[16 + 1];    // generic buffer representing one line on display
 char passBuffer[4 + 1]; // temporary password buffer
 Input chr;
 uint8_t superTmp;
@@ -77,10 +77,12 @@ int main() {
         // doesn't get printed and speed is 37% for some reason lol
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        sprintf(buffer, "Temp:%dC Motor:%d", vars.currentTemp, vars.motorOn);
+        snprintf(buffer, sizeof(buffer), "Temp:%dC Motor:%d", vars.currentTemp,
+                 vars.motorOn);
         lcdPrint(lcd, buffer);
         lcdSetCursor(lcd, 1, 0);
-        sprintf(buffer, "Speed:%d%%of%d%%", vars.speed, vars.maxSpeed);
+        snprintf(buffer, sizeof(buffer), "Speed:%d%%of%d%%", vars.speed,
+                 vars.maxSpeed);
         lcdPrint(lcd, buffer);
         _delay_ms(500); // so screen doesn't get updated very frequently
         break;
@@ -100,7 +102,8 @@ int main() {
             lcdSetCursor(lcd, 0, 0);
             lcdPrint(lcd, "Enter Password:");
             lcdSetCursor(lcd, 1, 0);
-            sprintf(passBuffer + strlen(passBuffer), "%d", 1);
+            snprintf(passBuffer + strlen(passBuffer),
+                     sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
             lcdPrint(lcd, passBuffer);
           } else if (chr == DOWN && strlen(passBuffer) < 4) {
             // chr is 2
@@ -108,7 +111,8 @@ int main() {
             lcdSetCursor(lcd, 0, 0);
             lcdPrint(lcd, "Enter Password:");
             lcdSetCursor(lcd, 1, 0);
-            sprintf(passBuffer + strlen(passBuffer), "%d", 2);
+            snprintf(passBuffer + strlen(passBuffer),
+                     sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
             lcdPrint(lcd, passBuffer);
           } else if (chr == ENTER && (strlen(passBuffer) == 4)) {
             if (strcmp(passBuffer, vars.password) == 0) {
@@ -256,7 +260,7 @@ int main() {
         passBuffer[0] = '\0';
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        sprintf(buffer, "Old Pass:%s", vars.password);
+        snprintf(buffer, sizeof(buffer), "Old Pass:%s", vars.password);
         lcdPrint(lcd, buffer);
 
         // wait for user input
@@ -265,10 +269,12 @@ int main() {
           _delay_ms(100);
           if (chr == UP && strlen(passBuffer) < 4) {
             // chr is 1
-            sprintf(passBuffer + strlen(passBuffer), "%d", 1);
+            snprintf(passBuffer + strlen(passBuffer),
+                     sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
           } else if (chr == DOWN && strlen(passBuffer) < 4) {
             // chr is 2
-            sprintf(passBuffer + strlen(passBuffer), "%d", 2);
+            snprintf(passBuffer + strlen(passBuffer),
+                     sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
           } else if (chr == ENTER && (strlen(passBuffer) == 4)) {
             strcpy(vars.password, passBuffer);
             currentState = SUCCESS;
@@ -279,10 +285,10 @@ int main() {
           }
           lcdClear(lcd);
           lcdSetCursor(lcd, 0, 0);
-          sprintf(buffer, "Old Pass:%s", vars.password);
+          snprintf(buffer, sizeof(buffer), "Old Pass:%s", vars.password);
           lcdPrint(lcd, buffer);
           lcdSetCursor(lcd, 1, 0);
-          sprintf(buffer, "New Pass:%s", passBuffer);
+          snprintf(buffer, sizeof(buffer), "New Pass:%s", passBuffer);
           lcdPrint(lcd, buffer);
         } while ((chr != ENTER) && (chr != BACK));
 
@@ -293,7 +299,7 @@ int main() {
         // another state so it remains in menu array.
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        sprintf(buffer, "Thresh(C):%d", vars.tempThreshold);
+        snprintf(buffer, sizeof(buffer), "Thresh(C):%d", vars.tempThreshold);
         lcdPrint(lcd, buffer);
         superTmp = vars.tempThreshold;
 
@@ -304,14 +310,14 @@ int main() {
             superTmp++;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            sprintf(buffer, "Thresh(C):%d", superTmp);
+            snprintf(buffer, sizeof(buffer), "Thresh(C):%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == DOWN) {
             superTmp--;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            sprintf(buffer, "Thresh(C):%d", superTmp);
+            snprintf(buffer, sizeof(buffer), "Thresh(C):%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == ENTER) {
@@ -330,7 +336,7 @@ int main() {
       case CHANGE_SPEED:
         lcdClear(lcd);
         lcdSetCursor(lcd, 0, 0);
-        sprintf(buffer, "Max Speed:%d", vars.maxSpeed);
+        snprintf(buffer, sizeof(buffer), "Max Speed:%d", vars.maxSpeed);
         lcdPrint(lcd, buffer);
         superTmp = vars.maxSpeed;
 
@@ -341,14 +347,14 @@ int main() {
             superTmp++;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            sprintf(buffer, "Max Speed:%d", superTmp);
+            snprintf(buffer, sizeof(buffer), "Max Speed:%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == DOWN) {
             superTmp--;
             lcdClear(lcd);
             lcdSetCursor(lcd, 0, 0);
-            sprintf(buffer, "Max Speed:%d", superTmp);
+            snprintf(buffer, sizeof(buffer), "Max Speed:%d", superTmp);
             lcdPrint(lcd, buffer);
           }
           if (keyInput == ENTER) {
@@ -368,8 +374,8 @@ int main() {
         lcdSetCursor(lcd, 0, 0);
         lcdPrint(lcd, "Set Time:");
         lcdSetCursor(lcd, 1, 0);
-        sprintf(buffer, "%02d:%02d:%02d", vars.time[0], vars.time[1],
-                vars.time[2]);
+        snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", vars.time[0],
+                 vars.time[1], vars.time[2]);
         lcdPrint(lcd, buffer);
         uint8_t myTmp[3];
         for (int i = 0; i < 3; i++) {
@@ -387,7 +393,8 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Time:");
               lcdSetCursor(lcd, 1, 0);
-              sprintf(buffer, "%02d:%02d:%02d", myTmp[0], myTmp[1], myTmp[2]);
+              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmp[0],
+                       myTmp[1], myTmp[2]);
               lcdPrint(lcd, buffer);
             }
             if (keyInput == DOWN) {
@@ -396,7 +403,8 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Time:");
               lcdSetCursor(lcd, 1, 0);
-              sprintf(buffer, "%02d:%02d:%02d", myTmp[0], myTmp[1], myTmp[2]);
+              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmp[0],
+                       myTmp[1], myTmp[2]);
               lcdPrint(lcd, buffer);
             }
             if (keyInput == ENTER) {
@@ -421,8 +429,8 @@ int main() {
         lcdSetCursor(lcd, 0, 0);
         lcdPrint(lcd, "Set Alarm:");
         lcdSetCursor(lcd, 1, 0);
-        sprintf(buffer, "%02d:%02d:%02d", vars.alarm[0], vars.alarm[1],
-                vars.alarm[2]);
+        snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", vars.alarm[0],
+                 vars.alarm[1], vars.alarm[2]);
         lcdPrint(lcd, buffer);
         uint8_t myTmpAlarm[3];
         for (int i = 0; i < 3; i++) {
@@ -440,8 +448,8 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Alarm:");
               lcdSetCursor(lcd, 1, 0);
-              sprintf(buffer, "%02d:%02d:%02d", myTmpAlarm[0], myTmpAlarm[1],
-                      myTmpAlarm[2]);
+              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmpAlarm[0],
+                       myTmpAlarm[1], myTmpAlarm[2]);
               lcdPrint(lcd, buffer);
             }
             if (keyInput == DOWN) {
@@ -450,8 +458,8 @@ int main() {
               lcdSetCursor(lcd, 0, 0);
               lcdPrint(lcd, "Set Alarm:");
               lcdSetCursor(lcd, 1, 0);
-              sprintf(buffer, "%02d:%02d:%02d", myTmpAlarm[0], myTmpAlarm[1],
-                      myTmpAlarm[2]);
+              snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", myTmpAlarm[0],
+                       myTmpAlarm[1], myTmpAlarm[2]);
               lcdPrint(lcd, buffer);
             }
             if (keyInput == ENTER) {
