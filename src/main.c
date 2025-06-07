@@ -358,6 +358,7 @@ void passwordHandler() {
     } else if (input == BACK) {
       currentState = STATUS;
       lastState = PASS;
+      break;
     }
   }
 }
@@ -477,16 +478,22 @@ void changeTime() {
         lcdPrint(lcd, buffer);
 
       } else if (keyInput == ENTER) {
-        vars.time[i] = timeBuffer[i];
+        if (i == 2) {
+          // if cursor is on last digit, enter means save changes
+          for (int i = 0; i < 3; i++) {
+            vars.time[i] = timeBuffer[i];
+            displaySuccess("Time Changed");
+          }
+        }
         break;
 
       } else if (keyInput == BACK) {
-        i--;
+        i -= 2;
         break;
       }
     }
-    // if cursor is on first digit, back means go back to menu
-    if (i < 0) {
+    if (i == -2) {
+      // if cursor is on first digit, back means go back to menu
       break;
     }
   }
@@ -535,16 +542,22 @@ void setAlarm() {
         lcdPrint(lcd, buffer);
 
       } else if (keyInput == ENTER) {
-        vars.alarm[i] = alarmBuffer[i];
+        if (i == 2) {
+          for (int i = 0; i < 3; i++) {
+            vars.alarm[i] = alarmBuffer[i];
+            displaySuccess("Alarm Changed");
+          }
+        }
         break;
+        ;
 
       } else if (keyInput == BACK) {
-        i -= 1;
+        i -= 2;
         break;
       }
     }
-    // if cursor is on first digit, back means go back to menu
-    if (i < 0) {
+    if (i == -2) {
+      // if cursor is on first digit, back means go back to menu
       break;
     }
   }
