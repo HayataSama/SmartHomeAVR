@@ -14,7 +14,6 @@ State currentState = STATUS;
 State lastState = NOSTATE;
 char buffer[BUFFER_SIZE];             // text buffer
 char passBuffer[PASSWORD_LENGTH + 1]; // password buffer
-Input chr;
 uint8_t superTmp;
 int menuIndex = 0;
 int menuCursor = 0;
@@ -42,20 +41,7 @@ ISR(PCINT1_vect) {
 }
 
 int main() {
-  // configure PC0 "pin change" interrupt and enable global interrupt
-  PCICR |= (1 << PCIE1);
-  PCMSK1 |= (1 << PCINT8);
-  sei();
-
-  // initializations
-  lcd = lcdInit(DDB0, DDB1, DDD4, DDD5, DDD6, DDD7, 16, 2, LCD_5x8DOTS);
-  lcdClear(lcd);
-  adcInit();
-
-  // fill menu items with spaces
-  for (int i = 0; i < 5; i++) {
-    filler(menu[i], BUFFER_SIZE, ' ');
-  }
+  systemInit();
 
   while (1) {
     // read temperature from sensor and adjust the motor
@@ -65,67 +51,19 @@ int main() {
     if (currentState != lastState) {
       switch (currentState) {
       case STATUS:
-        // FIXME: when you go back from menu to status screen the first line
-        // doesn't get printed and speed is 37% for some reason lol
-        lcdClear(lcd);
-        lcdSetCursor(lcd, 0, 0);
-        snprintf(buffer, BUFFER_SIZE, "Temp:%dC Motor:%d", vars.currentTemp,
-                 vars.motorOn);
-        lcdPrint(lcd, buffer);
-        lcdSetCursor(lcd, 1, 0);
-        snprintf(buffer, BUFFER_SIZE, "Speed:%d%%of%d%%", vars.speed,
-                 vars.maxSpeed);
-        lcdPrint(lcd, buffer);
-        _delay_ms(500); // so screen doesn't get updated very frequently
+        displayStatus();
         break;
 
       case PASS:
-        passBuffer[0] = '\0';
-        lcdClear(lcd);
-        lcdSetCursor(lcd, 0, 0);
-        lcdPrint(lcd, "Enter Password:");
-        lcdSetCursor(lcd, 1, 0);
-        do {
-          chr = getKeypad();
-          _delay_ms(100);
-          if (chr == UP && strlen(passBuffer) < PASSWORD_LENGTH) {
-            // chr is 1
-            lcdClear(lcd);
-            lcdSetCursor(lcd, 0, 0);
-            lcdPrint(lcd, "Enter Password:");
-            lcdSetCursor(lcd, 1, 0);
-            snprintf(passBuffer + strlen(passBuffer),
-                     sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
-            lcdPrint(lcd, passBuffer);
-          } else if (chr == DOWN && strlen(passBuffer) < PASSWORD_LENGTH) {
-            // chr is 2
-            lcdClear(lcd);
-            lcdSetCursor(lcd, 0, 0);
-            lcdPrint(lcd, "Enter Password:");
-            lcdSetCursor(lcd, 1, 0);
-            snprintf(passBuffer + strlen(passBuffer),
-                     sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
-            lcdPrint(lcd, passBuffer);
-          } else if (chr == ENTER && (strlen(passBuffer) == PASSWORD_LENGTH)) {
-            if (strcmp(passBuffer, vars.password) == 0) {
-              currentState = MENU;
-              lastState = PASS;
-              break;
-            } else {
-              currentState = FAILURE;
-              lastState = PASS;
-              break;
-            }
-          } else if (chr == BACK) {
-            currentState = STATUS;
-            lastState = PASS;
-            break;
-          }
-        } while (1);
-
+        passwordHandler();
         break;
 
       case MENU:
+        // fill menu items with spaces
+        for (int i = 0; i < 5; i++) {
+          filler(menu[i], BUFFER_SIZE, ' ');
+        }
+
         if (menuIndex == -1) {
           menuIndex = 4;
         }
@@ -255,23 +193,26 @@ int main() {
         snprintf(buffer, BUFFER_SIZE, "Old Pass:%s", vars.password);
         lcdPrint(lcd, buffer);
 
+        Input input;
+
         // wait for user input
         do {
-          chr = getKeypad();
+          input = getKeypad();
           _delay_ms(100);
-          if (chr == UP && strlen(passBuffer) < PASSWORD_LENGTH) {
-            // chr is 1
+          if (input == UP && strlen(passBuffer) < PASSWORD_LENGTH) {
+            // input is 1
             snprintf(passBuffer + strlen(passBuffer),
                      sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
-          } else if (chr == DOWN && strlen(passBuffer) < PASSWORD_LENGTH) {
-            // chr is 2
+          } else if (input == DOWN && strlen(passBuffer) < PASSWORD_LENGTH) {
+            // input is 2
             snprintf(passBuffer + strlen(passBuffer),
                      sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
-          } else if (chr == ENTER && (strlen(passBuffer) == PASSWORD_LENGTH)) {
+          } else if (input == ENTER &&
+                     (strlen(passBuffer) == PASSWORD_LENGTH)) {
             strcpy(vars.password, passBuffer);
             currentState = SUCCESS;
             lastState = CHANGE_PASS;
-          } else if (chr == BACK) {
+          } else if (input == BACK) {
             currentState = MENU;
             lastState = CHANGE_PASS;
           }
@@ -282,7 +223,7 @@ int main() {
           lcdSetCursor(lcd, 1, 0);
           snprintf(buffer, BUFFER_SIZE, "New Pass:%s", passBuffer);
           lcdPrint(lcd, buffer);
-        } while ((chr != ENTER) && (chr != BACK));
+        } while ((input != ENTER) && (input != BACK));
 
         break;
       case CHANGE_TEMP:
@@ -497,6 +438,7 @@ int main() {
         }
         break;
       }
+      // lastState = currentState;
     }
   }
 
@@ -521,6 +463,30 @@ int main() {
 // TODO: EEPROM
 // TODO: pwm
 // TODO: timer for updating clock
+// TODO: remove lastState updates
+
+void systemInit() {
+  // configure PC0 "pin change" interrupt
+  PCICR |= (1 << PCIE1);
+  PCMSK1 |= (1 << PCINT8);
+
+  // enable global interrupt
+  sei();
+
+  // for debugging purposes
+  DDRD |= (1 << DDD0);
+
+  // init display
+  lcd = lcdInit(DDB0, DDB1, DDD4, DDD5, DDD6, DDD7, 16, 2, LCD_5x8DOTS);
+  lcdClear(lcd);
+
+  // init adc
+  adcInit();
+
+  // clear buffers
+  buffer[0] = '\0';
+  passBuffer[0] = '\0';
+}
 
 void motorControl() {
   // read new temperature from sensor
@@ -551,4 +517,89 @@ void motorControl() {
       vars.speed = 0;
     }
   }
+}
+
+void displayStatus() {
+  // FIXME: when you go back from menu to status screen the first line
+  // doesn't get printed and speed is 37% for some reason lol
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  snprintf(buffer, BUFFER_SIZE, "Temp:%dC Motor:%d", vars.currentTemp,
+           vars.motorOn);
+  lcdPrint(lcd, buffer);
+  lcdSetCursor(lcd, 1, 0);
+  snprintf(buffer, BUFFER_SIZE, "Speed:%d%%of%d%%", vars.speed, vars.maxSpeed);
+  lcdPrint(lcd, buffer);
+  _delay_ms(500); // so screen doesn't get updated very frequently
+}
+
+void passwordHandler() {
+  // clear password buffer
+  passBuffer[0] = '\0';
+  Input input;
+
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  lcdPrint(lcd, "Enter Password:");
+  lcdSetCursor(lcd, 1, 0);
+
+  while (1) {
+    input = getKeypad();
+    _delay_ms(100);
+
+    if (input == UP) {
+      if (strlen(passBuffer) < PASSWORD_LENGTH) {
+        // input is 1
+        snprintf(passBuffer + strlen(passBuffer),
+                 sizeof(passBuffer + strlen(passBuffer)), "%d", 1);
+
+        // update the screen
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        lcdPrint(lcd, "Enter Password:");
+        lcdSetCursor(lcd, 1, 0);
+        lcdPrint(lcd, passBuffer);
+      }
+    } else if (input == DOWN) {
+      if (strlen(passBuffer) < PASSWORD_LENGTH) {
+        // input is 2
+        snprintf(passBuffer + strlen(passBuffer),
+                 sizeof(passBuffer + strlen(passBuffer)), "%d", 2);
+
+        // update the screen
+        lcdClear(lcd);
+        lcdSetCursor(lcd, 0, 0);
+        lcdPrint(lcd, "Enter Password:");
+        lcdSetCursor(lcd, 1, 0);
+        lcdPrint(lcd, passBuffer);
+      }
+    } else if (input == ENTER) {
+      if (strlen(passBuffer) == PASSWORD_LENGTH) {
+        if (strcmp(passBuffer, vars.password) == 0) {
+          currentState = MENU;
+          lastState = PASS;
+        } else {
+          displayFailure("Incorrect Pass");
+          currentState = STATUS;
+          lastState = PASS;
+        }
+      } else {
+        displayFailure("Incorrect Pass");
+        currentState = STATUS;
+        lastState = PASS;
+      }
+      break;
+    } else if (input == BACK) {
+      currentState = STATUS;
+      lastState = PASS;
+    }
+  }
+}
+
+void displayFailure(char *msg) {
+  lcdClear(lcd);
+  lcdSetCursor(lcd, 0, 0);
+  snprintf(buffer, BUFFER_SIZE, "%s", msg);
+  lcdPrint(lcd, buffer);
+  _delay_ms(1000);
 }

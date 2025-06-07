@@ -45,7 +45,19 @@ char menu[MENU_ITEMS][BUFFER_SIZE] = {
     "4.Set Time",    "5.Set Alarm",
 };
 
+// init core system components
+void systemInit();
+
 // read temperature from sensor and adjust the motor
 void motorControl();
+
+// show status screen
+void displayStatus();
+
+// get and validate password
+void passwordHandler();
+
+// show failure screen
+void displayFailure(char *msg);
 
 #endif
