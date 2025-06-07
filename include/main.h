@@ -79,4 +79,7 @@ void changeTemp();
 // dispaly menu
 void displayMenu();
 
+// check if the alarm has went off
+void checkAlarm();
+
 #endif

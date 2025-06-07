@@ -41,6 +41,9 @@ int main() {
     // read temperature from sensor and adjust the motor
     motorControl();
 
+    // check if the alarm has went off
+    checkAlarm();
+
     // State machine
     if (currentState != lastState) {
       switch (currentState) {
@@ -621,6 +624,14 @@ void displayMenu() {
       lastState = MENU;
       break;
     }
+  }
+}
+
+void checkAlarm() {
+  if (memcmp(vars.time, vars.alarm, sizeof(vars.time)) == 0) {
+    PORTD |= (1 << PORTD0);
+  } else {
+    PORTD &= ~(1 << PORTD0);
   }
 }
 
