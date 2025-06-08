@@ -11,6 +11,7 @@
 #define MAX_SPEED 100      // max motor duty cycle (%)
 #define MIN_SPEED 5        // min motor duty cycle (%)
 #define SPEED_STEP_SIZE 5  // step size for motor control
+#define TIMEOUT 10         // return to status screen if
 
 typedef enum {
   NOSTATE,
@@ -81,5 +82,14 @@ void displayMenu();
 
 // check if the alarm has went off
 void checkAlarm();
+
+// configure timer 1 to generate an interrput every 1s
+void timerInit();
+
+// start counting (timer 1)
+void startTimer();
+
+// stop counting (timer 1)
+void stopTimer();
 
 #endif

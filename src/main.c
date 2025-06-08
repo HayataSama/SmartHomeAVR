@@ -23,6 +23,19 @@ Vars vars = {
     .motorOn = 0,
     .speed = 0,
 };
+volatile uint8_t seconds = 0;
+volatile uint8_t timeoutFlag = 0;
+
+ISR(TIMER1_COMPA_vect) {
+  seconds++;
+  // Emulating a TIMEOUT second watchdog
+  if (seconds >= TIMEOUT) {
+    currentState = STATUS;
+    lastState = NOSTATE;
+    timeoutFlag = 1;
+    seconds = 0;
+  }
+}
 
 // ISR for PC0 (Keypad)
 ISR(PCINT1_vect) {
@@ -109,6 +122,10 @@ void systemInit() {
   PCICR |= (1 << PCIE1);
   PCMSK1 |= (1 << PCINT8);
 
+  // configure timer 1 to generate an interrupt every 1s
+  timerInit();
+  startTimer();
+
   // enable global interrupt
   sei();
 
@@ -167,6 +184,8 @@ void motorControl() {
 }
 
 void displayStatus() {
+  seconds = 0;
+  timeoutFlag = 0;
   lcdClear(lcd);
   lcdSetCursor(lcd, 0, 0);
   snprintf(buffer, BUFFER_SIZE, "Temp:%dC Motor:%d", vars.currentTemp,
@@ -192,7 +211,9 @@ void passwordHandler() {
   // to prevent accidentally pressing enter or back
   _delay_ms(750);
 
-  while (1) {
+  seconds = 0;
+  timeoutFlag = 0;
+  while (!(timeoutFlag)) {
     input = getKeypad();
     _delay_ms(100);
 
@@ -277,7 +298,9 @@ void changePassword() {
   // to prevent accidentally pressing enter or back
   _delay_ms(750);
 
-  while (1) {
+  seconds = 0;
+  timeoutFlag = 0;
+  while (!(timeoutFlag)) {
     input = getKeypad();
     _delay_ms(100);
 
@@ -344,8 +367,10 @@ void changeTime() {
     timeBuffer[i] = vars.time[i];
   }
 
+  seconds = 0;
+  timeoutFlag = 0;
   for (int i = 0; i < 3; i++) {
-    while (1) {
+    while (!(timeoutFlag)) {
       keyInput = getKeypad();
       _delay_ms(100);
 
@@ -414,8 +439,10 @@ void setAlarm() {
     alarmBuffer[i] = vars.alarm[i];
   }
 
+  seconds = 0;
+  timeoutFlag = 0;
   for (int i = 0; i < 3; i++) {
-    while (1) {
+    while (!(timeoutFlag)) {
       keyInput = getKeypad();
       _delay_ms(100);
 
@@ -477,7 +504,9 @@ void changeSpeed() {
   // to prevent accidentally pressing enter or back
   _delay_ms(750);
 
-  while (1) {
+  seconds = 0;
+  timeoutFlag = 0;
+  while (!(timeoutFlag)) {
     keyInput = getKeypad();
     _delay_ms(100);
 
@@ -522,7 +551,9 @@ void changeTemp() {
   // to prevent accidentally pressing enter or back
   _delay_ms(750);
 
-  while (1) {
+  seconds = 0;
+  timeoutFlag = 0;
+  while (!(timeoutFlag)) {
     keyInput = getKeypad();
     _delay_ms(100);
 
@@ -576,7 +607,9 @@ void displayMenu() {
   // to prevent accidentally pressing enter or back
   _delay_ms(750);
 
-  while (1) {
+  seconds = 0;
+  timeoutFlag = 0;
+  while (!(timeoutFlag)) {
     keyInput = getKeypad();
     _delay_ms(100);
 
@@ -657,5 +690,38 @@ void checkAlarm() {
   }
 }
 
+void timerInit() {
+  // configure timer 1 to generate an interrput every 1s
+
+  // Clear Timer1 registers
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
+  // Set Timer1 to CTC (Clear Timer on Compare Match) mode
+  TCCR1B |= (1 << WGM12);
+  // Set prescaler to 1024
+  TCCR1B |= (1 << CS12) | (1 << CS10);
+  // Calculate OCR1A value for 30 seconds
+  // OCR1A = (F_CPU * time_in_seconds) / prescaler - 1
+  // OCR1A = (16000000 * 1) / 1024 - 1 = 15624
+  OCR1A = 15624;
+}
+
+void startTimer() {
+  // Enable Timer1 Compare Match A interrupt
+  TIMSK1 |= (1 << OCIE1A);
+
+  // Start counting from 0 to OCR1A
+  TCNT1 = 0;
+}
+
+void stopTimer() {
+  // Disable Timer1 Compare Match A interrupt
+  TIMSK1 &= ~(1 << OCIE1A);
+
+  // clear TCNT1
+  TCNT1 = 0;
+}
+
 // TODO: search for 7-segment solution
-// TODO: learn timers to implement a watchdog timer and RTC
+// TODO: implement RTC
