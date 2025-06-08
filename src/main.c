@@ -28,6 +28,17 @@ volatile uint8_t timeoutFlag = 0;
 
 ISR(TIMER1_COMPA_vect) {
   seconds++;
+  // emulate an RTC
+  vars.time[2]++;
+  if (vars.time[2] == 60) {
+    vars.time[2] = 0;
+    vars.time[1]++;
+  }
+  if (vars.time[1] == 60) {
+    vars.time[1] = 0;
+    vars.time[0]++;
+  }
+
   // Emulating a TIMEOUT second watchdog
   if (seconds >= TIMEOUT) {
     currentState = STATUS;
@@ -724,4 +735,3 @@ void stopTimer() {
 }
 
 // TODO: search for 7-segment solution
-// TODO: implement RTC
